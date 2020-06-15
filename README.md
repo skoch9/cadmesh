@@ -1,2 +1,3 @@
-# cadmesh
-Mesh CAD files.
+# Installation
+
+conda env create -f environment.yml
