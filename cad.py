@@ -35,6 +35,7 @@ from OCC.Core.GeomConvert import geomconvert_SurfaceToBSplineSurface
 from OCC.Core.GeomConvert import geomconvert_CurveToBSplineCurve
 from OCC.Core.Geom2dConvert import geom2dconvert_CurveToBSplineCurve
 from OCC.Core.TopLoc import TopLoc_Location
+from convert import convert_features
 
 np.set_printoptions(precision=17)
 
@@ -351,8 +352,10 @@ def mesh_model(model, res_path, convert=True, all_edges=True):
                 nurbs_converter = BRepBuilderAPI_NurbsConvert(occ_steps[occ_cnt])
                 nurbs_converter.Perform(occ_steps[occ_cnt])
                 nurbs = nurbs_converter.Shape()
-            except:
+            except Exception as e:
                 print("Conversion failed")
+                print(occ_steps[occ_cnt])
+                print(e)
                 continue
         else:
             nurbs = occ_steps[occ_cnt]
@@ -470,81 +473,11 @@ def mesh_model(model, res_path, convert=True, all_edges=True):
         bbox1 = ["%.2f"%xmin, "%.2f"%ymin, "%.2f"%zmin, "%.2f"%xmax, "%.2f"%ymax, "%.2f"%zmax, "%.2f"%(xmax-xmin), "%.2f"%(ymax-ymin), "%.2f"%(zmax-zmin)]
         stats["#edges"] = total_edges
         stats["#surfs"] = total_surfs
-        
-        # Fix possible orientation problems
-        if convert:
-            for p_cnt, p in enumerate(patches):
-                wires = sorted(list(set(p["wire_ids"])))
-                c_id = 0
-                for w in wires:
-                    # Check orientation of first curve in wire
-                    if p["wire_ids"].count(w) >= 2:
-                        cur = tr_curves[p["2dcurves"][c_id]]
-                        nxt = tr_curves[p["2dcurves"][c_id+1]]
-                        c_ori = p["orientations"][c_id]
-                        n_ori = p["orientations"][c_id+1]
-                        if c_ori == 0:
-                            pole0 = np.array(cur["poles"][0])
-                            pole1 = np.array(cur["poles"][-1])
-                        else: 
-                            pole0 = np.array(cur["poles"][-1])
-                            pole1 = np.array(cur["poles"][0])
-                            
-                        if n_ori == 0:
-                            pole2 = np.array(nxt["poles"][0])
-                            pole3 = np.array(nxt["poles"][-1])
-                        else: 
-                            pole2 = np.array(nxt["poles"][-1])
-                            pole3 = np.array(nxt["poles"][0])
-
-    #                    print(pole0, pole1, pole2, pole3)
-                        
-                        d02 = np.linalg.norm(pole0 - pole2)
-                        d12 = np.linalg.norm(pole1 - pole2)
-                        d03 = np.linalg.norm(pole0 - pole3)
-                        d13 = np.linalg.norm(pole1 - pole3)
-
-                        amin = np.argmin([d02, d12, d03, d13]) 
-
-    #                    print(amin, c_ori, n_ori, d02, d12, d03, d13)
-                        
-                        if amin == 0 or amin == 2: # Orientation of first curve incorrect, fix
-                            #print("FIX ORIENT 0", p_cnt)
-                            #print(pole0, pole1, pole2, pole3)
-                            #print(amin, c_ori, n_ori, d02, d12, d03, d13)
-                            p["orientations"][c_id] = abs(c_ori - 1)
-                    
-                    # Fix all orientations in wire
-                    for i in range(c_id, c_id + p["wire_ids"].count(w) - 1):
-                        cur = tr_curves[p["2dcurves"][i]]
-                        nxt = tr_curves[p["2dcurves"][i+1]]
-                        c_ori = p["orientations"][i]
-                        n_ori = p["orientations"][i+1]
-                        if c_ori == 0:
-                            pole1 = np.array(cur["poles"][-1])
-                        else: 
-                            pole1 = np.array(cur["poles"][0])
-                            
-                        if n_ori == 0:
-                            pole2 = np.array(nxt["poles"][0])
-                            pole3 = np.array(nxt["poles"][-1])
-                        else: 
-                            pole2 = np.array(nxt["poles"][-1])
-                            pole3 = np.array(nxt["poles"][0])
-                        
-                        d12 = np.linalg.norm(pole1 - pole2)
-                        d13 = np.linalg.norm(pole1 - pole3)
-                        
-                        amin = np.argmin([d12, d13])
-                        
-                        if amin == 1: # Incorrect orientation, flip
-                            #print("FIX ORIENT %i"%i, p_cnt)
-                            #print(pole1, pole2, pole3, c_ori, n_ori, d12, d13, amin)
-                            p["orientations"][i+1] = abs(n_ori - 1)
-
-                    c_id += p["wire_ids"].count(w)
                 
         features = {"curves": d1_feats, "surfaces": d2_feats, "trim": tr_curves, "topo": patches, "bbox": bbox1}
+        # Fix possible orientation problems
+        if convert:
+            features = convert_features(features)
         
         os.makedirs(res_path, exist_ok=True)
         fip = fil + "_features2"
