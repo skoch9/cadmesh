@@ -204,6 +204,18 @@ def convert_features(features):
             #print("Missing Offset")
             p["offsets"].append([0.0, 0.0])
         #print(p["offsets"])
+        
+    # Apply offset transformations
+    for si, s in enumerate(features["topo"]):
+        #print(s["offsets"])
+        for i in range(len(s["2dcurves"])):
+            c2d = features["trim"][s["2dcurves"][i]]
+            if c2d["type"] == "BSpline":
+                if "offsets" in s and len(s["offsets"]) > i:
+                    s["offsets"][i] = np.array(s["offsets"][i]).tolist()
+                else:
+                    #print("Zero Offset missing")
+                    s["offsets"].append([0.0, 0.0])
 
     return features
         
