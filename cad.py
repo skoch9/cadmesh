@@ -536,7 +536,7 @@ def mesh_model(model, res_path, convert=True, all_edges=True):
         os.makedirs(res_path, exist_ok=True)
         fip = fil + "_features2"
         with open("%s/%s_%03i.yml"%(res_path, fip, occ_cnt), "w") as fili:
-            yaml.dump(features, fili, indent=2)
+            yaml.dump(features, fili, indent=2, width=79, default_flow_style=None)
         
         fip = fil + "_features"
         with open("%s/%s_%03i.yml"%(res_path, fip, occ_cnt), "w") as fili:
@@ -544,7 +544,7 @@ def mesh_model(model, res_path, convert=True, all_edges=True):
             for sf in features2["surfaces"]:
                 del sf["faces"]
                 del sf["verts"]
-            yaml.dump(features2, fili, indent=2)    
+            yaml.dump(features2, fili, indent=2, width=79, default_flow_style=None)    
 
 #        res_path = folder.replace("/step/", "/stat/")
 #        fip = fil + "_stats"
