@@ -1,11 +1,19 @@
 
+# Python OCC
+from OCC.Extend.TopologyUtils import TopologyExplorer, WireExplorer
+from OCC.Core.TopExp import topexp
+from OCC.Core.TopAbs import (TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_WIRE,
+                             TopAbs_SHELL, TopAbs_SOLID, TopAbs_COMPOUND,
+                             TopAbs_COMPSOLID)
+from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
+from OCC.Core.BRep import BRep_Tool
 
 class TopologyDictBuilder:
     """
     A class which builds a python dictionary
     ready for export to the topology file
     """
-    def __init__(self, entiy_mapper):
+    def __init__(self, entity_mapper):
         """
         Construct from the entity mapper which gives
         us a mapping between the 
@@ -29,7 +37,8 @@ class TopologyDictBuilder:
 
         return body_dict
 
-    def build_regions_array(top_exp):
+
+    def build_regions_array(self, top_exp):
         regions_arr = []
         regions = top_exp.solids()
         for region in regions:
@@ -37,35 +46,39 @@ class TopologyDictBuilder:
         return regions_arr
         
 
-    def build_shells_array(top_exp):
+    def build_shells_array(self, top_exp):
         shells_arr = []
         shells = top_exp.shells()
         for shell in shells:
             shells_arr.append(self.build_shell_data(top_exp, shell))
         return shells_arr
 
-    def build_faces_array(top_exp):
+
+    def build_faces_array(self, top_exp):
         faces_arr = []
         faces = top_exp.faces()
-        for face in facess:
+        for face in faces:
             faces_arr.append(self.build_face_data(top_exp, face))
         return faces_arr
 
-    def build_edges_array(top_exp):
+
+    def build_edges_array(self, top_exp):
         edges_arr = []
         edges = top_exp.edges()
         for edge in edges:
             edges_arr.append(self.build_edge_data(top_exp, edge))
         return edges_arr
 
-    def build_loops_array(top_exp):
+
+    def build_loops_array(self, top_exp):
         loops_arr = []
         loops = top_exp.wires()
         for loop in loops:
             loops_arr.append(self.build_loop_data(top_exp, loop))
         return loops_arr
 
-    def build_halfedges_array(body):
+
+    def build_halfedges_array(self, body):
         halfedges_arr = []
         oriented_top_exp = TopologyExplorer(body, ignore_orientation=False)
         halfedges = oriented_top_exp.edges()
@@ -73,33 +86,42 @@ class TopologyDictBuilder:
             halfedges_arr.append(self.build_halfedge_data(halfedge))
         return halfedges_arr
 
+
     def build_region_data(self, top_exp, region):
         shell_indices = []
-        shells = top_exp._loop_topo(TopoDS_Shell, region)
+        shells = top_exp._loop_topo(TopAbs_SHELL, region)
         for shell in shells:
+            shell_orientation = bool(shell.Orientation())
+            # print(f"Shell orientation {shell_orientation}")
             shell_indices.append(self.entity_mapper.shell_index(shell))
         return {
             "shells": shell_indices
         }
 
+
     def build_shell_data(self, top_exp, shell):
         face_list = []
-        faces = self._loop_topo(TopAbs_FACE, shell)
+        faces = top_exp._loop_topo(TopAbs_FACE, shell)
+        shell_orientation = shell.Orientation()
         for face in faces:
-            # It's not at all clear what this flag actually
-            # does.   Are we finding the orientation of the
-            # face wrt the surface or the face_use wrt the shell
-            orientation = face.Orientation()
-            assert orientation
+            # We need to know if this face-use has the same orientation 
+            # as the "primary face-use"
+            face_orientation = face.Orientation()
+            primary_face_orientation = self.entity_mapper.primary_face_orientation(face)
+
+            # Is this face-use oriented the same way as the primary face-use
+            face_orientation_wrt_shell = bool(face_orientation) == bool(primary_face_orientation) 
             face_list.append(
                 {
                     "face_index": self.entity_mapper.face_index(face),
-                    "face_orientation_wrt_shell": True
+                    "face_orientation_wrt_shell": face_orientation_wrt_shell
                 }
             )
         return {
+            "orientation_wrt_region": shell_orientation,
             "faces": face_list
         }
+
 
     def build_face_data(self, top_exp, face):
         loop_indices = []
@@ -111,7 +133,8 @@ class TopologyDictBuilder:
         # does.   Are we finding the orientation of the
         # face wrt the surface or the face_use wrt the shell
         orientation = face.Orientation()
-        assert orientation
+                    
+        # print(f"Orientation from face {orientation}")
         index_of_face = self.entity_mapper.face_index(face)
         
         return {
@@ -121,42 +144,50 @@ class TopologyDictBuilder:
             "trim_domain": index_of_face
         }
 
-    def build_edge_data(self, top_exp, edge):
-        index_of_edge = self.entity_mapper.edge_index(edge)
-        vertices = top_exp.vertices_from_edge(edge)
-        vertex_indices = []
-        occ_vertices = []
-        for vertex in vertices:
-            vertex_indices.append(self.entity_mapper.vertex_index(vertex))
-            occ_vertices.append(vertex)
-        
-        assert len(vertex_indices) == 1 or len(vertex_indices) == 2
-        start_vertex = vertex_indices[0]
-        if len(vertex_indices) == 2:
-            end_vertex = vertex_indices[1]
-        else:
-            end_vertex = vertex_indices[0]
 
-        # Try to check we have the correct start and end vertices
+    def debug_check_correct_vertex_order(
+        self, 
+        edge, 
+        start_vertex,
+        end_vertex
+    ):
+        """
+        Check the correct vertex is used as the start and end vertex
+        given the geometry of the edge curve
+        """
         curve = BRepAdaptor_Curve(edge)
         t_start = curve.FirstParameter()
         t_end = curve.LastParameter()
         start_point = curve.Value(t_start)
         end_point = curve.Value(t_end)
-        start_point_from_vertex = BRep_Tool.Pnt(occ_vertices[0])
-        if len(occ_vertices) == 2:
-            end_point_from_vertex = BRep_Tool.Pnt(occ_vertices[1])
-        else:
-            end_point_from_vertex = BRep_Tool.Pnt(occ_vertices[0])
+
+        start_point_from_vertex = BRep_Tool.Pnt(start_vertex)
+        end_point_from_vertex = BRep_Tool.Pnt(end_vertex)
 
         tolerance = 0.01
+        # print(f"start_point {self.point_to_str(start_point)}")
+        # print(f"start_point_from_vertex {self.point_to_str(start_point_from_vertex)}")
+        # print(f"end_point {self.point_to_str(end_point)}")
+        # print(f"end_point_from_vertex {self.point_to_str(end_point_from_vertex)}")
         assert start_point.IsEqual(start_point_from_vertex, tolerance)
         assert end_point.IsEqual(end_point_from_vertex, tolerance)
 
+
+    def build_edge_data(self, top_exp, edge):
+        index_of_edge = self.entity_mapper.edge_index(edge)
+        start_vertex = topexp.FirstVertex(edge)
+        end_vertex = topexp.LastVertex(edge)
+
+        # Check this actually gets the vertex order correct
+        self.debug_check_correct_vertex_order(edge, start_vertex, end_vertex)
+
+        start_vertex_index = self.entity_mapper.vertex_index(start_vertex)
+        end_vertex_index = self.entity_mapper.vertex_index(end_vertex)
+
         return {
             "3dcurve": index_of_edge,
-            "start_vertex": start_vertex,
-            "end_vertex": end_vertex
+            "start_vertex": start_vertex_index,
+            "end_vertex": end_vertex_index
         }
 
 
@@ -169,6 +200,7 @@ class TopologyDictBuilder:
         return {
             "halfedges": halfedge_indices
         }
+
 
     def build_halfedge_data(self, halfedge):
         orientation = halfedge.Orientation()
@@ -186,3 +218,7 @@ class TopologyDictBuilder:
             "edge": edge_index,
             "orientation_wrt_edge": orientation
         }
+
+
+    def point_to_str(self, pt):
+        return f"<{pt.X()}, {pt.Z()}, {pt.Z()}>"

@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from OCC.Extend.TopologyUtils import TopologyExplorer
 
 # Open Cascade needs to know the maximum size of the hash value
@@ -19,17 +18,26 @@ class EntityMapper:
         # Create the dictionaries which will map the
         # PythonOCC hash values to the indices used in 
         # the topology file
-        self.region_map = OrderedDict()
-        self.shell_map = OrderedDict()
-        self.face_map = OrderedDict()
-        self.loop_map = OrderedDict()
-        self.edge_map = OrderedDict()
-        self.halfedge_map = OrderedDict()
-        self.vertex_map = OrderedDict()
+        self.region_map = dict()
+        self.shell_map = dict()
+        self.face_map = dict()
+        self.loop_map = dict()
+        self.edge_map = dict()
+        self.halfedge_map = dict()
+        self.vertex_map = dict()
+
+        # In the non-manifold case some shells will return 
+        # both "face-uses".  i.e. faces with two different
+        # orientations depending on which shell they are 
+        # used by.  Here we record the orientations of the 
+        # "primary" faces which the topology explorer returns
+        # with "ignore_orientation" set true
+        self.primary_face_orientations_map = dict()
 
 
         top_exp = TopologyExplorer(body)
 
+        # Build the index lookup tables
         self.append_regions(top_exp)
         self.append_shells(top_exp)
         self.append_faces(top_exp)
@@ -37,6 +45,9 @@ class EntityMapper:
         self.append_edges(top_exp)
         self.append_halfedges(body)
         self.append_vertices(top_exp)
+
+        # Build the orientations of the primary faces
+        self.build_primary_face_orientations_map(top_exp)
 
 
     # The following functions are the interface for 
@@ -61,8 +72,8 @@ class EntityMapper:
         """
         Find the index of a face
         """
-        h = self.get_index(face)
-        return self.face_map[face]
+        h = self.get_hash(face)
+        return self.face_map[h]
 
     def loop_index(self, loop):
         """
@@ -84,7 +95,6 @@ class EntityMapper:
         """
         h = self.get_hash(halfedge)
         orientation = halfedge.Orientation()
-        assert orientation == TopAbs_FORWARD or orientation == TopAbs_REVERSED
         tup = (h,orientation)
         return self.halfedge_map[tup]
 
@@ -101,6 +111,9 @@ class EntityMapper:
         h = self.get_hash(vertex)
         return self.vertex_map[h]
 
+    def primary_face_orientation(self, face):
+        h = self.get_hash(face)
+        return self.primary_face_orientations_map[h]
 
 
     # These functions are used internally to build the map
@@ -129,7 +142,7 @@ class EntityMapper:
         self.shell_map[h] = index
 
     def append_faces(self, top_exp):
-        faces = top_exp.face()
+        faces = top_exp.faces()
         for face in faces:
             self.append_face(face)
 
@@ -165,8 +178,8 @@ class EntityMapper:
             self.append_halfedge(halfedge)
 
     def append_halfedge(self, halfedge):
-        h = get_hash(coedge)
-        orientation = coedge.Orientation()
+        h = self.get_hash(halfedge)
+        orientation = halfedge.Orientation()
         tup = (h, orientation)
         index = len(self.halfedge_map)
         self.halfedge_map[tup] = index
@@ -177,6 +190,16 @@ class EntityMapper:
             self.append_vertex(vertex)
 
     def append_vertex(self, vertex):
+        h = self.get_hash(vertex)
+        index = len(self.vertex_map)
+        self.vertex_map[h] = index
 
+    def build_primary_face_orientations_map(self, top_exp):
+        faces = top_exp.faces()
+        for face in faces:
+            self.append_primary_face(face)
 
-
+    def append_primary_face(self, face):
+        h = self.get_hash(face)
+        orientation = face.Orientation()
+        self.primary_face_orientations_map[h] = orientation
