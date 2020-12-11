@@ -179,6 +179,9 @@ class TopologyDictBuilderUtest(unittest.TestCase):
                 # Find the facet normal of each triangle
                 index1, index2, index3 = mesh.Triangle(i).Get()
 
+                # Sadly the triangles are not oriented.  At least if we
+                # check against the triangles we can tell at a glance when something is
+                # wrong.
                 # Do we need to reverse the triangles?
                 if not output_face_orientation:
                     temp = index1
@@ -200,10 +203,6 @@ class TopologyDictBuilderUtest(unittest.TestCase):
                 self.assertTrue(self.vectors_parallel(normal_from_face, normal_from_triangle))
                 
 
-
-
-
-
     def check_face_orientations_against_triangles(
             self,
             output,
@@ -218,6 +217,48 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             face_index = entity_mapper.face_index(face)
             output_face = output["faces"][face_index]
             self.check_face_orientation_against_triangles(output_face, face)
+
+    def check_loop_order(
+            self,
+            output,
+            wire,
+            entity_mapper
+        ):
+        wire_exp = WireExplorer(wire)
+        halfedges = wire_exp.ordered_edges()
+        vertices = wire_exp.ordered_vertices()
+        for halfedge, vertex in zip(halfedges, vertices):
+            halfedge_index = entity_mapper.find_halfedge_index(halfedge)
+            vertex_index = entity_mapper.find_vertex_index(vertex)
+
+            halfedge_orientation = topology_utils.orientation_to_sense(halfedge.Orientation())
+            output_halfedge_orientation = output["halfedges"][halfedge_index]["orientation_wrt_edge"]
+            self.assertTrue(halfedge_orientation == output_halfedge_orientation)
+
+            edge_index = entity_mapper.find_edge_index(edge)
+            output_edge_index = output["halfedges"][halfedge_index]["edge"]
+            self.assertTrue(edge_index == output_edge_index)
+
+            output_edge_start_vertex = output["edges"][edge_index]["start_vertex"]
+            output_edge_end_vertex = output["edges"][edge_index]["end_vertex"]
+            if output_halfedge_orientation:
+                self.assertTrue(output_edge_start_vertex == vertex_index)
+            else:
+                self.assertTrue(output_edge_end_vertex == vertex_index)
+
+
+    def check_order_of_all_loops(
+            self,
+            output,
+            body,
+            entity_mapper
+        ):
+        top_exp = TopologyExplorer(body)
+        faces = top_exp.faces()
+        for face in faces:
+            wires = top_exp.wires_from_face(face)
+            for wire in wires:
+                self.check_loop_order(output, wire, entity_mapper)
 
 
     def check_output_for_body(
@@ -243,6 +284,13 @@ class TopologyDictBuilderUtest(unittest.TestCase):
                 body, 
                 entity_mapper
             )
+
+
+        self.check_order_of_all_loops(
+            output,
+            body,
+            entity_mapper
+        )
 
     def build_dict_for_body(self, body, expect_manifold):
         entity_mapper = EntityMapper(body)
