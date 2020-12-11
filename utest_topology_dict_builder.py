@@ -5,10 +5,15 @@ import unittest
 from pathlib import Path
 import numpy as np
 import math
+import yaml
+
+# Other libs
+import igl
 
 # CAD
 from entity_mapper import EntityMapper
 from topology_dict_builder import TopologyDictBuilder
+import topology_utils as  topology_utils
 
 # PythonOCC
 from OCC.Core.gp import gp_Pnt, gp_Vec
@@ -47,6 +52,45 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             raise AssertionError("Error: can't read file.")
 
         return shapes
+
+    def debug_save_mesh(self, output_pathname, body):
+        top_exp = TopologyExplorer(body)
+        brep_tool = BRep_Tool()
+        faces = top_exp.faces()
+        first_vertex = 0
+        tris = []
+        verts = []
+        for face in faces:
+            face_orientation_wrt_surface_normal = topology_utils.orientation_to_sense(face.Orientation())
+            location = TopLoc_Location()
+            mesh = brep_tool.Triangulation(face, location)
+            if mesh != None:
+                # Loop over the triangles
+                num_tris = mesh.NbTriangles()
+                for i in range(1, num_tris+1):
+                    index1, index2, index3 = mesh.Triangle(i).Get()
+
+                    if face_orientation_wrt_surface_normal:
+                        # Same sense
+                        tris.append([
+                            first_vertex + index1 - 1, 
+                            first_vertex + index2 - 1, 
+                            first_vertex + index3 - 1
+                        ])
+                    else:
+                        # Opposite sense
+                        tris.append([
+                            first_vertex + index3 - 1, 
+                            first_vertex + index2 - 1, 
+                            first_vertex + index1 - 1
+                        ])
+
+                num_vertices = mesh.NbNodes()
+                first_vertex += num_vertices
+                for i in range(1, num_vertices+1):
+                    verts.append(list(mesh.Node(i).Coord()))
+
+        igl.write_triangle_mesh(str(output_pathname), np.array(verts), np.array(tris))
 
     def make_non_manifold_body(self):
         b1 = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), 10, 10, 10).Shape()
@@ -121,7 +165,9 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             output_face,
             face
         ):
-        face_orientation = output_face["surface_orientation"]
+        output_face_orientation = output_face["surface_orientation"]
+        face_orientation = topology_utils.orientation_to_sense(face.Orientation())
+        self.assertTrue(output_face_orientation == face_orientation)
         surf = BRepAdaptor_Surface(face)
         location = TopLoc_Location()
         brep_tool = BRep_Tool()
@@ -132,6 +178,13 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             for i in range(1, mesh.NbTriangles()+1):
                 # Find the facet normal of each triangle
                 index1, index2, index3 = mesh.Triangle(i).Get()
+
+                # Do we need to reverse the triangles?
+                if not output_face_orientation:
+                    temp = index1
+                    index1 = index3
+                    index3 = temp
+
                 pt1 = self.get_tri_vertex_coord(mesh, index1)
                 pt2 = self.get_tri_vertex_coord(mesh, index2)
                 pt3 = self.get_tri_vertex_coord(mesh, index3)
@@ -196,15 +249,23 @@ class TopologyDictBuilderUtest(unittest.TestCase):
         dict_builder = TopologyDictBuilder(entity_mapper)
         output = dict_builder.build_dict_for_body(body)
         self.check_output_for_body(output, body, entity_mapper, expect_manifold)
+        return output
+
+
 
     def build_dicts_for_file(self, pathname):
         print(f"Processing file {pathname}")
         bodies = self.load_bodies_from_file(pathname)
         for index, body in enumerate(bodies):
             print(f"Body {index}")
-            self.build_dict_for_body(body, expect_manifold=True)
+            output = self.build_dict_for_body(body, expect_manifold=True)
+            output_dir = Path("./results")
+            output_yaml = output_dir / f"{pathname.stem}_body_{index}.yaml"
+            with open(output_yaml, "w") as fp:
+                yaml.dump(output, fp, indent=2, width=79, default_flow_style=None)
 
-
+            output_obj = output_dir / f"{pathname.stem}_body_{index}.obj"
+            self.debug_save_mesh(output_obj, body)
 
     def test_build_dicts_for_files(self):
         self.build_dict_for_non_manifold_body()

@@ -8,6 +8,9 @@ from OCC.Core.TopAbs import (TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_WIR
 from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
 from OCC.Core.BRep import BRep_Tool
 
+# CAD
+import topology_utils as topology_utils
+
 class TopologyDictBuilder:
     """
     A class which builds a python dictionary
@@ -91,8 +94,7 @@ class TopologyDictBuilder:
         shell_indices = []
         shells = top_exp._loop_topo(TopAbs_SHELL, region)
         for shell in shells:
-            shell_orientation = bool(shell.Orientation())
-            # print(f"Shell orientation {shell_orientation}")
+            shell_orientation = topology_utils.orientation_to_sense(shell.Orientation())
             shell_indices.append(self.entity_mapper.shell_index(shell))
         return {
             "shells": shell_indices
@@ -102,11 +104,11 @@ class TopologyDictBuilder:
     def build_shell_data(self, top_exp, shell):
         face_list = []
         faces = top_exp._loop_topo(TopAbs_FACE, shell)
-        shell_orientation = shell.Orientation()
+        shell_orientation = topology_utils.orientation_to_sense(shell.Orientation())
         for face in faces:
             # We need to know if this face-use has the same orientation 
             # as the "primary face-use"
-            face_orientation = face.Orientation()
+            face_orientation = topology_utils.orientation_to_sense(face.Orientation())
             primary_face_orientation = self.entity_mapper.primary_face_orientation(face)
 
             # Is this face-use oriented the same way as the primary face-use
@@ -129,12 +131,8 @@ class TopologyDictBuilder:
         for loop in loops:
             loop_indices.append(self.entity_mapper.loop_index(loop))
         
-        # It's not at all clear what this flag actually
-        # does.   Are we finding the orientation of the
-        # face wrt the surface or the face_use wrt the shell
-        orientation = face.Orientation()
-                    
-        # print(f"Orientation from face {orientation}")
+        # Face normal wrt surface normal
+        orientation = self.entity_mapper.primary_face_orientation(face)
         index_of_face = self.entity_mapper.face_index(face)
         
         return {
@@ -203,7 +201,7 @@ class TopologyDictBuilder:
 
 
     def build_halfedge_data(self, halfedge):
-        orientation = halfedge.Orientation()
+        orientation = topology_utils.orientation_to_sense(halfedge.Orientation())
         mate = halfedge.Reversed()
         mates = []
         if self.entity_mapper.halfedge_exists(mate):
