@@ -14,9 +14,9 @@ class EntityMapper:
     This class allows us to map between OpenCascade entities 
     and the indices which we will write into the topology file
     """
-    def __init__(self, body):
+    def __init__(self, bodies):
         """
-        Create a mapper object for this body
+        Create a mapper object for this list of bodies
         """
 
         # Create the dictionaries which will map the
@@ -38,20 +38,20 @@ class EntityMapper:
         # with "ignore_orientation" set true
         self.primary_face_orientations_map = dict()
 
+        for body in bodies:
+            top_exp = TopologyExplorer(body)
 
-        top_exp = TopologyExplorer(body)
+            # Build the index lookup tables
+            self.append_regions(top_exp)
+            self.append_shells(top_exp)
+            self.append_faces(top_exp)
+            self.append_loops(top_exp)
+            self.append_edges(top_exp)
+            self.append_halfedges(body)
+            self.append_vertices(top_exp)
 
-        # Build the index lookup tables
-        self.append_regions(top_exp)
-        self.append_shells(top_exp)
-        self.append_faces(top_exp)
-        self.append_loops(top_exp)
-        self.append_edges(top_exp)
-        self.append_halfedges(body)
-        self.append_vertices(top_exp)
-
-        # Build the orientations of the primary faces
-        self.build_primary_face_orientations_map(top_exp)
+            # Build the orientations of the primary faces
+            self.build_primary_face_orientations_map(top_exp)
 
 
     # The following functions are the interface for 

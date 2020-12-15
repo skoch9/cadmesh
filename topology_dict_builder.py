@@ -24,89 +24,115 @@ class TopologyDictBuilder:
         self.entity_mapper = entity_mapper
 
 
-    def build_dict_for_body(self, body):
+    def build_dict_for_bodies(self, bodies):
         """
-        Build the dictionary for this body
-        """
-        top_exp = TopologyExplorer(body)
+        Build the dictionary for these bodies
+        """        
         body_dict = {
-            "regions": self.build_regions_array(top_exp),
-            "shells": self.build_shells_array(top_exp),
-            "faces": self.build_faces_array(top_exp),
-            "edges": self.build_edges_array(top_exp),
-            "loops": self.build_loops_array(top_exp),
-            "halfedges": self.build_halfedges_array(body)
+            "bodies": self.build_bodies_array(bodies),
+            "regions": self.build_regions_array(bodies),
+            "shells": self.build_shells_array(bodies),
+            "faces": self.build_faces_array(bodies),
+            "edges": self.build_edges_array(bodies),
+            "loops": self.build_loops_array(bodies),
+            "halfedges": self.build_halfedges_array(bodies)
         }
 
         return body_dict
 
+    def build_bodies_array(self, bodies):
+        bodies_arr = []
+        for body in bodies:
+            bodies_arr.append(self.build_body_data(body))
+        return bodies_arr
 
-    def build_regions_array(self, top_exp):
+    def build_regions_array(self, bodies):
         regions_arr = []
-        regions = top_exp.solids()
-        for region in regions:
-            expected_region_index = self.entity_mapper.region_index(region)
-            assert expected_region_index == len(regions_arr)
-            regions_arr.append(self.build_region_data(top_exp, region))
+        for body in bodies:
+            top_exp = TopologyExplorer(body)
+            regions = top_exp.solids()
+            for region in regions:
+                expected_region_index = self.entity_mapper.region_index(region)
+                assert expected_region_index == len(regions_arr)
+                regions_arr.append(self.build_region_data(top_exp, region))
         return regions_arr
         
 
-    def build_shells_array(self, top_exp):
+    def build_shells_array(self, bodies):
         shells_arr = []
-        shells = top_exp.shells()
-        for shell in shells:
-            expected_shell_index = self.entity_mapper.shell_index(shell)
-            assert expected_shell_index == len(shells_arr)
-            shells_arr.append(self.build_shell_data(top_exp, shell))
+        for body in bodies:
+            top_exp = TopologyExplorer(body)
+            shells = top_exp.shells()
+            for shell in shells:
+                expected_shell_index = self.entity_mapper.shell_index(shell)
+                assert expected_shell_index == len(shells_arr)
+                shells_arr.append(self.build_shell_data(top_exp, shell))
         return shells_arr
 
 
-    def build_faces_array(self, top_exp):
+    def build_faces_array(self, bodies):
         faces_arr = []
-        faces = top_exp.faces()
-        for face in faces:
-            expected_face_index = self.entity_mapper.face_index(face)
-            assert expected_face_index == len(faces_arr)
-            faces_arr.append(self.build_face_data(top_exp, face))
+        for body in bodies:
+            top_exp = TopologyExplorer(body)
+            faces = top_exp.faces()
+            for face in faces:
+                expected_face_index = self.entity_mapper.face_index(face)
+                assert expected_face_index == len(faces_arr)
+                faces_arr.append(self.build_face_data(top_exp, face))
         return faces_arr
 
 
-    def build_edges_array(self, top_exp):
+    def build_edges_array(self, bodies):
         edges_arr = []
-        edges = top_exp.edges()
-        for edge in edges:
-            expected_edge_index = self.entity_mapper.edge_index(edge)
-            assert expected_edge_index == len(edges_arr)
-            edges_arr.append(self.build_edge_data(top_exp, edge))
+        for body in bodies:
+            top_exp = TopologyExplorer(body)
+            edges = top_exp.edges()
+            for edge in edges:
+                expected_edge_index = self.entity_mapper.edge_index(edge)
+                assert expected_edge_index == len(edges_arr)
+                edges_arr.append(self.build_edge_data(top_exp, edge))
         return edges_arr
 
 
-    def build_loops_array(self, top_exp):
+    def build_loops_array(self, bodies):
         loops_arr = []
-        loops = top_exp.wires()
-        for loop in loops:
-            expected_loop_index = self.entity_mapper.loop_index(loop)
-            assert expected_loop_index == len(loops_arr)
-            loops_arr.append(self.build_loop_data(top_exp, loop))
+        for body in bodies:
+            top_exp = TopologyExplorer(body)
+            loops = top_exp.wires()
+            for loop in loops:
+                expected_loop_index = self.entity_mapper.loop_index(loop)
+                assert expected_loop_index == len(loops_arr)
+                loops_arr.append(self.build_loop_data(top_exp, loop))
         return loops_arr
 
 
-    def build_halfedges_array(self, body):
+    def build_halfedges_array(self, bodies):
         halfedges_arr = []
-        oriented_top_exp = TopologyExplorer(body, ignore_orientation=False)
-        halfedges = oriented_top_exp.edges()
-        halfedge_set = set()
-        for halfedge in halfedges:
-            h = self.entity_mapper.get_hash(halfedge)
-            orientation = halfedge.Orientation()
-            tup = (h, orientation)
-            if not tup in halfedge_set:
-                expected_halfedge_index = self.entity_mapper.halfedge_index(halfedge)
-                assert expected_halfedge_index == len(halfedges_arr)
-                halfedges_arr.append(self.build_halfedge_data(halfedge))
-                halfedge_set.add(tup)
+        for body in bodies:
+            oriented_top_exp = TopologyExplorer(body, ignore_orientation=False)
+            halfedges = oriented_top_exp.edges()
+            halfedge_set = set()
+            for halfedge in halfedges:
+                h = self.entity_mapper.get_hash(halfedge)
+                orientation = halfedge.Orientation()
+                tup = (h, orientation)
+                if not tup in halfedge_set:
+                    expected_halfedge_index = self.entity_mapper.halfedge_index(halfedge)
+                    assert expected_halfedge_index == len(halfedges_arr)
+                    halfedges_arr.append(self.build_halfedge_data(halfedge))
+                    halfedge_set.add(tup)
         return halfedges_arr
 
+    def build_body_data(self, body):
+        region_indices = []
+        top_exp = TopologyExplorer(body)
+        regions = top_exp.solids()
+        for region in regions:
+            region_index = self.entity_mapper.region_index(region)
+            region_indices.append(region_index)
+        return {
+            "regions": region_indices
+        }
 
     def build_region_data(self, top_exp, region):
         shell_indices = []

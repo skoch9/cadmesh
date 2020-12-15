@@ -126,7 +126,7 @@ class TopologyDictBuilderUtest(unittest.TestCase):
 
     def build_dict_for_non_manifold_body(self):
         body = self.make_non_manifold_body()
-        self.build_dict_for_body(body, expect_manifold=False)
+        self.build_dict_for_bodies([ body ], expect_manifold=False)
 
     def check_face_orientation_wrt_shell(self, output):
         # The sum of all the faces-uses referenced by the shells
@@ -420,11 +420,12 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             entity_mapper
         )
 
-    def build_dict_for_body(self, body, expect_manifold):
-        entity_mapper = EntityMapper(body)
+    def build_dict_for_bodies(self, bodies, expect_manifold):
+        entity_mapper = EntityMapper(bodies)
         dict_builder = TopologyDictBuilder(entity_mapper)
-        output = dict_builder.build_dict_for_body(body)
-        self.check_output_for_body(output, body, entity_mapper, expect_manifold)
+        output = dict_builder.build_dict_for_bodies(bodies)
+        for body in bodies:
+            self.check_output_for_body(output, body, entity_mapper, expect_manifold)
         return output
 
 
@@ -432,14 +433,13 @@ class TopologyDictBuilderUtest(unittest.TestCase):
     def build_dicts_for_file(self, pathname):
         print(f"Processing file {pathname}")
         bodies = self.load_bodies_from_file(pathname)
-        for index, body in enumerate(bodies):
-            print(f"Body {index}")
-            output = self.build_dict_for_body(body, expect_manifold=True)
-            output_dir = Path("./results")
-            output_yaml = output_dir / f"{pathname.stem}_body_{index}.yaml"
-            with open(output_yaml, "w") as fp:
-                yaml.dump(output, fp, indent=2, width=79, default_flow_style=None)
+        output = self.build_dict_for_bodies(bodies, expect_manifold=True)
+        output_dir = Path("./results")
+        output_yaml = output_dir / f"{pathname.stem}.yaml"
+        with open(output_yaml, "w") as fp:
+            yaml.dump(output, fp, indent=2, width=79, default_flow_style=None)
 
+        for index, body in enumerate(bodies):
             output_obj = output_dir / f"{pathname.stem}_body_{index}.obj"
             self.debug_save_mesh(output_obj, body)
 
