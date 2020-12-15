@@ -16,6 +16,8 @@ import yaml
 import igl
 import copy
 from OCC.Core.Bnd import Bnd_Box
+from OCC.Core.BRepTopAdaptor import *
+from OCC.Core.TopAbs import *
 from OCC.Core.BRepBndLib import brepbndlib_Add
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox, BRepPrimAPI_MakeCylinder
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
@@ -334,13 +336,26 @@ def convert_surface(surf, convert_2bs=False):
     
     return d2_feat
 
+def setup_trimming(face, bounds, tol=1e-9):
+    u1,u2, v1,v2 = bounds
+    dailen = (u2-u1)*(u2-u1) + (v2-v1)*(v2-v1)
+    dailen = np.sqrt(dailen) / 400.
+    tol = max([dailen, tol])
+    return BRepTopAdaptor_FClass2d(face, tol), dailen
+
+def is_uv_in_face_domain(trim, u, v):
+    uv = gp_Pnt2d(u, v)
+    if trim.Perform(uv) == TopAbs_IN:
+        return True
+    else:
+        return False
 
 def mesh_model(model, res_path, convert=True, all_edges=True):
     fil = model.split("/")[-1][:-5]
     folder = "/".join(model.split("/")[:-1])
     with fileinput.FileInput(model, inplace=True) as fi:
         for line in fi:
-            print(line.replace("UNCERTAINTY_MEASURE_WITH_UNIT( LENGTH_MEASURE( 1.00000000000000E-06 )",
+            print(line.replace("UNCERTAINTY_MEASURE_WITH_UNIT( LENGTH_MEASURE( 1.00000000000000E-17 )",
                            "UNCERTAINTY_MEASURE_WITH_UNIT( LENGTH_MEASURE( 1.00000000000000E-17 )"), end='')
 
     occ_steps = read_step_file(model)
@@ -422,7 +437,7 @@ def mesh_model(model, res_path, convert=True, all_edges=True):
             for tc in t_curves:
                 if tc["surface"] == face:
                     patch = {"3dcurves": [], "2dcurves": [], "orientations": [], "surf_orientation": face.Orientation(),
-                            "wire_ids": [], "wire_orientations": []}
+                            "wire_ids": [], "wire_orientations": [], "points_in": [], "points_out": []}
                     
                     for wc, fw in enumerate(occ_top.wires_from_face(face)):
                         patch["wire_orientations"].append(fw.Orientation())
@@ -438,6 +453,26 @@ def mesh_model(model, res_path, convert=True, all_edges=True):
                                     patch["wire_ids"].append(wc)
                                     orientation = fe.Orientation()
                                     patch["orientations"].append(orientation)
+                                    
+                                    bnds = [surf.FirstUParameter(), surf.LastUParameter(), surf.FirstVParameter(), surf.LastVParameter()]
+                                    trim, diag = setup_trimming(face, bnds)
+                                    cur = tr_curves[ttc["2dcurve_id"]]
+                                    
+                                    u_dist = bnds[1]-bnds[0]
+                                    v_dist = bnds[3]-bnds[2]
+                                    samples_u = np.linspace(bnds[0]-0.01*u_dist, bnds[1]+0.01*u_dist, int(10*u_dist))
+                                    samples_v = np.linspace(bnds[2]-0.01*v_dist, bnds[3]+0.01*v_dist, int(10*v_dist))
+                                    #print(samples_u, samples_v)
+
+                                    for u in samples_u:
+                                        for v in samples_v:
+                                            inuv = is_uv_in_face_domain(trim, u, v)
+                                            if inuv:
+                                                patch["points_in"].append([float(u), float(v)])
+                                                #print("In", u, v)
+                                            else:
+                                                #print("Out", u, v)
+                                                patch["points_out"].append([float(u), float(v)])
                                       
                     patches.append(patch)
                     break
@@ -482,7 +517,7 @@ def mesh_model(model, res_path, convert=True, all_edges=True):
         os.makedirs(res_path, exist_ok=True)
         fip = fil + "_features2"
         with open("%s/%s_%03i.yml"%(res_path, fip, occ_cnt), "w") as fili:
-            yaml.dump(features, fili, indent=2, width=79, default_flow_style=None)
+            yaml.dump(features, fili, indent=2)
         
         fip = fil + "_features"
         with open("%s/%s_%03i.yml"%(res_path, fip, occ_cnt), "w") as fili:
@@ -490,7 +525,7 @@ def mesh_model(model, res_path, convert=True, all_edges=True):
             for sf in features2["surfaces"]:
                 del sf["faces"]
                 del sf["verts"]
-            yaml.dump(features2, fili, indent=2, width=79, default_flow_style=None)    
+            yaml.dump(features2, fili, indent=2)    
 
 #        res_path = folder.replace("/step/", "/stat/")
 #        fip = fil + "_stats"
