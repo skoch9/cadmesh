@@ -22,6 +22,7 @@ class EntityMapper:
         # Create the dictionaries which will map the
         # PythonOCC hash values to the indices used in 
         # the topology file
+        self.body_map = dict()
         self.region_map = dict()
         self.shell_map = dict()
         self.face_map = dict()
@@ -42,6 +43,7 @@ class EntityMapper:
             top_exp = TopologyExplorer(body)
 
             # Build the index lookup tables
+            self.append_body(body)
             self.append_regions(top_exp)
             self.append_shells(top_exp)
             self.append_faces(top_exp)
@@ -57,6 +59,13 @@ class EntityMapper:
     # The following functions are the interface for 
     # users of the class to access the indices
     # which will reptresent the Open Cascade entities
+
+    def body_index(self, body):
+        """
+        Find the index of a body
+        """
+        h = self.get_hash(body)
+        return self.body_map[h]
 
     def region_index(self, region):
         """
@@ -124,6 +133,12 @@ class EntityMapper:
 
     def get_hash(self, ent):
         return ent.HashCode(intmax)
+
+    def append_body(self, body):
+        h = self.get_hash(body)
+        index = len(self.body_map)
+        assert not h in self.body_map
+        self.body_map[h] = index
 
     def append_regions(self, top_exp):
         regions = top_exp.solids()

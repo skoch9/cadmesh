@@ -389,6 +389,36 @@ class TopologyDictBuilderUtest(unittest.TestCase):
                 self.check_loop_orientation(wire, face)
                 self.check_orientations_of_2d_and_3d_curves(wire, face)
 
+    def find_faces_for_body(output, body_index):
+        face_indices = set()
+        body_data = output["bodies"][body_index]
+        for region_index in body_data["regions"]:
+            region_data = output["regions"][region_index]
+            for shell_index in region_data["shells"]:
+                shell_data = output["shells"][shell_index]
+                for face in shell_face["faces"]:
+                    face_index = face["face_index"]
+                    face_indices.add(face_index)
+        return face_indices
+
+
+    def check_face_list_for_body(
+            self,
+            output,
+            body,
+            entity_mapper
+        ):
+        body_index = entity_mapper.body_index(body)
+        face_indices = self.find_faces_for_body(output, body_index)
+        face_indices_from_body = set()
+        top_exp = TopologyExplorer(body)
+        faces = top_exp.faces()
+        for face in faces:
+            face_index = entity_mapper.face_index(face)
+            face_indices.add(face_index)
+
+        self.assertTrue(face_indices == face_indices_from_body)
+
     def check_output_for_body(
             self, 
             output, 
