@@ -133,6 +133,7 @@ class EntityMapper:
     def append_region(self, region):
         h = self.get_hash(region)
         index = len(self.region_map)
+        assert not h in self.region_map
         self.region_map[h] = index
 
     def append_shells(self, top_exp):
@@ -143,6 +144,7 @@ class EntityMapper:
     def append_shell(self, shell):
         h = self.get_hash(shell)
         index = len(self.shell_map)
+        assert not h in self.shell_map
         self.shell_map[h] = index
 
     def append_faces(self, top_exp):
@@ -153,6 +155,7 @@ class EntityMapper:
     def append_face(self, face):
         h = self.get_hash(face)
         index = len(self.face_map)
+        assert not h in self.face_map
         self.face_map[h] = index
 
     def append_loops(self, top_exp):
@@ -163,6 +166,7 @@ class EntityMapper:
     def append_loop(self, loop):
         h = self.get_hash(loop)
         index = len(self.loop_map)
+        assert not h in self.loop_map
         self.loop_map[h] = index
 
     def append_edges(self, top_exp):
@@ -173,6 +177,7 @@ class EntityMapper:
     def append_edge(self, edge):
         h = self.get_hash(edge)
         index = len(self.edge_map)
+        assert not h in self.edge_map
         self.edge_map[h] = index
 
     def append_halfedges(self, body):
@@ -186,7 +191,8 @@ class EntityMapper:
         orientation = halfedge.Orientation()
         tup = (h, orientation)
         index = len(self.halfedge_map)
-        self.halfedge_map[tup] = index
+        if not tup in self.halfedge_map:
+            self.halfedge_map[tup] = index
 
     def append_vertices(self, top_exp):
         vertices = top_exp.vertices()
@@ -196,6 +202,7 @@ class EntityMapper:
     def append_vertex(self, vertex):
         h = self.get_hash(vertex)
         index = len(self.vertex_map)
+        assert not h in self.vertex_map
         self.vertex_map[h] = index
 
     def build_primary_face_orientations_map(self, top_exp):
@@ -206,5 +213,6 @@ class EntityMapper:
     def append_primary_face(self, face):
         h = self.get_hash(face)
         orientation = topology_utils.orientation_to_sense(face.Orientation())
+        assert not h in self.primary_face_orientations_map
         self.primary_face_orientations_map[h] = orientation
 
