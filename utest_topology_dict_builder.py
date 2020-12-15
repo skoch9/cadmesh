@@ -7,6 +7,10 @@ import numpy as np
 import math
 import yaml
 
+# Debugging visualization
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+
 # Other libs
 import igl
 
@@ -16,16 +20,18 @@ from topology_dict_builder import TopologyDictBuilder
 import topology_utils as  topology_utils
 
 # PythonOCC
-from OCC.Core.gp import gp_Pnt, gp_Vec
+from OCC.Core.gp import gp_Pnt, gp_Vec, gp_Pnt2d
 from OCC.Core.STEPControl import STEPControl_Reader
 from OCC.Core.IFSelect import IFSelect_RetDone, IFSelect_ItemsByEntity
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeBox
 from OCC.Core.BOPAlgo import BOPAlgo_Builder
 from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.BRep import BRep_Tool
+from OCC.Core.BRepTools import breptools
 from OCC.Extend.TopologyUtils import TopologyExplorer, WireExplorer
-from OCC.Core.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Surface
+from OCC.Core.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Curve2d, BRepAdaptor_Surface
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+from OCC.Core.GCPnts import GCPnts_QuasiUniformDeflection
 from OCC.Display.SimpleGui import init_display
 
 class TopologyDictBuilderUtest(unittest.TestCase):
@@ -65,10 +71,24 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             location = TopLoc_Location()
             mesh = brep_tool.Triangulation(face, location)
             if mesh != None:
+                self.assertTrue(mesh.HasUVNodes())
+
                 # Loop over the triangles
                 num_tris = mesh.NbTriangles()
                 for i in range(1, num_tris+1):
                     index1, index2, index3 = mesh.Triangle(i).Get()
+
+                    # Get the UV nodes
+                    uv1 = self.convert_gp_pnt2d_to_numpy(mesh.UVNode(index1))
+                    uv2 = self.convert_gp_pnt2d_to_numpy(mesh.UVNode(index2))
+                    uv3 = self.convert_gp_pnt2d_to_numpy(mesh.UVNode(index3))
+                    duv1 = uv2-uv1
+                    duv2 = uv3-uv1
+
+                    # We want to find out if the triangle nodes have
+                    # anti-clockwise ordering in the UV space
+                    area2 = np.cross(duv1, duv2)
+                    self.assertTrue(area2 > 0.0)
 
                     if face_orientation_wrt_surface_normal:
                         # Same sense
@@ -218,6 +238,109 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             output_face = output["faces"][face_index]
             self.check_face_orientation_against_triangles(output_face, face)
 
+    def convert_gp_pnt3d_to_numpy(self, pt3d):
+        return np.array([pt3d.X(), pt3d.Y(), pt3d.Z()])
+
+    def convert_gp_pnt2d_to_numpy(self, pt2d):
+        return np.array([pt2d.X(), pt2d.Y()])
+
+    def area_np(self, points):        
+        x = points[:,0]
+        y = points[:,1]
+        n = x.size
+        shift_up = np.arange(-n+1, 1)
+        shift_down = np.arange(-1, n-1)    
+        return (x * (y.take(shift_up) - y.take(shift_down))).sum() / 2.0
+
+    def create_2d_polygon(self, wire, face):
+        wire_exp = WireExplorer(wire)
+        halfedges = wire_exp.ordered_edges()
+        points = []
+        for halfedge in halfedges:
+            curve_2d = BRepAdaptor_Curve2d(halfedge, face)
+            halfedge_orientation = topology_utils.orientation_to_sense(halfedge.Orientation())
+            num_points_per_curve = 10
+            tmin = curve_2d.FirstParameter()
+            tmax = curve_2d.LastParameter()
+
+            if halfedge_orientation:
+                t_params = np.linspace(tmin, tmax, num_points_per_curve)
+            else:
+                t_params = np.linspace(tmax, tmin, num_points_per_curve)
+
+            for i in range(t_params.size):
+                t = t_params[i]
+                pt2d = curve_2d.Value(t)
+                points.append(self.convert_gp_pnt2d_to_numpy(pt2d))
+        return np.stack(points)
+
+    def display_poly(self, poly):
+        fig, ax = plt.subplots()
+        polygon = Polygon(poly, True)
+        ax.add_patch(polygon)
+
+        num_points = poly.shape[0]
+        for i in range(num_points):
+            text = f"{i}"
+            ax.annotate(
+                text,
+                xy=poly[i, :]
+            )
+        plt.axis('off')
+        ax.axis('equal')
+        plt.show()
+
+    def check_orientations_of_2d_and_3d_curves(self, wire, face):
+        surf = BRepAdaptor_Surface(face)
+        wire_exp = WireExplorer(wire)
+        halfedges = wire_exp.ordered_edges()
+        for halfedge in halfedges:
+            curve3 = BRepAdaptor_Curve(halfedge)
+            curve2 = BRepAdaptor_Curve2d(halfedge, face)
+            tmin3d = curve3.FirstParameter()
+            tmax3d = curve3.LastParameter()
+            tmin2d = curve2.FirstParameter()
+            tmax2d = curve2.LastParameter()
+            self.assertAlmostEqual(tmin3d, tmin2d, places=3)
+            self.assertAlmostEqual(tmax3d, tmax2d, places=3)
+            num_points = 10
+            t_params = np.linspace(tmin2d, tmax2d, num_points)
+            for i in range(num_points):
+                t = t_params[i]
+                uv = curve2.Value(t)
+                pt_from_2d = self.convert_gp_pnt3d_to_numpy(surf.Value(uv.X(), uv.Y()))
+                pt3d = self.convert_gp_pnt3d_to_numpy(curve3.Value(t))
+                self.assertTrue(np.allclose(pt_from_2d, pt3d, atol=1e-3))
+
+
+    def check_loop_orientation(self, wire, face):
+        face_orientation = topology_utils.orientation_to_sense(face.Orientation())
+        wire_orientation = topology_utils.orientation_to_sense(wire.Orientation())
+
+        outer_wire = breptools.OuterWire(face)
+        is_outer_wire =  (outer_wire == wire)
+
+        # For an outer loop, the area of the UV polygon is:
+        #    - Positive when the face normals agree with the surface normals
+        #    - Negative when the face normals are opposite to the surface normals
+        # For an inner loop we have the opposite
+        #
+        # Hence the loop winding rule is relative to the face rather than 
+        # the surface
+        expect_positive_area =  (face_orientation == is_outer_wire)
+
+        poly = self.create_2d_polygon(wire, face)
+        area = self.area_np(poly)
+        found_positive_area = (area > 0.0)
+        if expect_positive_area != found_positive_area:
+            self.display_poly(poly)
+
+        if expect_positive_area:
+            self.assertTrue(area > 0.0)
+        else:
+            self.assertTrue(area < 0.0)
+
+
     def check_loop_order(
             self,
             output,
@@ -228,14 +351,18 @@ class TopologyDictBuilderUtest(unittest.TestCase):
         halfedges = wire_exp.ordered_edges()
         vertices = wire_exp.ordered_vertices()
         for halfedge, vertex in zip(halfedges, vertices):
-            halfedge_index = entity_mapper.find_halfedge_index(halfedge)
-            vertex_index = entity_mapper.find_vertex_index(vertex)
+            halfedge_index = entity_mapper.halfedge_index(halfedge)
+            curve2d_index = output["halfedges"][halfedge_index]["2dcurve"]
+            self.assertTrue(halfedge_index == curve2d_index)
+            vertex_index = entity_mapper.vertex_index(vertex)
 
             halfedge_orientation = topology_utils.orientation_to_sense(halfedge.Orientation())
             output_halfedge_orientation = output["halfedges"][halfedge_index]["orientation_wrt_edge"]
             self.assertTrue(halfedge_orientation == output_halfedge_orientation)
 
-            edge_index = entity_mapper.find_edge_index(edge)
+            # The halfedge is really an edge along with a flag.  When 
+            # we ask for the edge index the flag just gets ignored
+            edge_index = entity_mapper.edge_index(halfedge)
             output_edge_index = output["halfedges"][halfedge_index]["edge"]
             self.assertTrue(edge_index == output_edge_index)
 
@@ -259,7 +386,8 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             wires = top_exp.wires_from_face(face)
             for wire in wires:
                 self.check_loop_order(output, wire, entity_mapper)
-
+                self.check_loop_orientation(wire, face)
+                self.check_orientations_of_2d_and_3d_curves(wire, face)
 
     def check_output_for_body(
             self, 
