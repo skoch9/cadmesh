@@ -45,6 +45,8 @@ class TopologyDictBuilder:
         regions_arr = []
         regions = top_exp.solids()
         for region in regions:
+            expected_region_index = self.entity_mapper.region_index(region)
+            assert expected_region_index == len(regions_arr)
             regions_arr.append(self.build_region_data(top_exp, region))
         return regions_arr
         
@@ -53,6 +55,8 @@ class TopologyDictBuilder:
         shells_arr = []
         shells = top_exp.shells()
         for shell in shells:
+            expected_shell_index = self.entity_mapper.shell_index(shell)
+            assert expected_shell_index == len(shells_arr)
             shells_arr.append(self.build_shell_data(top_exp, shell))
         return shells_arr
 
@@ -61,6 +65,8 @@ class TopologyDictBuilder:
         faces_arr = []
         faces = top_exp.faces()
         for face in faces:
+            expected_face_index = self.entity_mapper.face_index(face)
+            assert expected_face_index == len(faces_arr)
             faces_arr.append(self.build_face_data(top_exp, face))
         return faces_arr
 
@@ -69,6 +75,8 @@ class TopologyDictBuilder:
         edges_arr = []
         edges = top_exp.edges()
         for edge in edges:
+            expected_edge_index = self.entity_mapper.edge_index(edge)
+            assert expected_edge_index == len(edges_arr)
             edges_arr.append(self.build_edge_data(top_exp, edge))
         return edges_arr
 
@@ -77,6 +85,8 @@ class TopologyDictBuilder:
         loops_arr = []
         loops = top_exp.wires()
         for loop in loops:
+            expected_loop_index = self.entity_mapper.loop_index(loop)
+            assert expected_loop_index == len(loops_arr)
             loops_arr.append(self.build_loop_data(top_exp, loop))
         return loops_arr
 
@@ -85,8 +95,16 @@ class TopologyDictBuilder:
         halfedges_arr = []
         oriented_top_exp = TopologyExplorer(body, ignore_orientation=False)
         halfedges = oriented_top_exp.edges()
+        halfedge_set = set()
         for halfedge in halfedges:
-            halfedges_arr.append(self.build_halfedge_data(halfedge))
+            h = self.entity_mapper.get_hash(halfedge)
+            orientation = halfedge.Orientation()
+            tup = (h, orientation)
+            if not tup in halfedge_set:
+                expected_halfedge_index = self.entity_mapper.halfedge_index(halfedge)
+                assert expected_halfedge_index == len(halfedges_arr)
+                halfedges_arr.append(self.build_halfedge_data(halfedge))
+                halfedge_set.add(tup)
         return halfedges_arr
 
 
@@ -203,16 +221,18 @@ class TopologyDictBuilder:
     def build_halfedge_data(self, halfedge):
         orientation = topology_utils.orientation_to_sense(halfedge.Orientation())
         mate = halfedge.Reversed()
+        orientation2 = topology_utils.orientation_to_sense(halfedge.Orientation())
+        assert orientation == orientation2
         mates = []
         if self.entity_mapper.halfedge_exists(mate):
             mates.append(self.entity_mapper.halfedge_index(mate))
         
         edge_index = self.entity_mapper.edge_index(halfedge)
-        hafedge_index = self.entity_mapper.halfedge_index(halfedge)
+        halfedge_index = self.entity_mapper.halfedge_index(halfedge)
 
         return {
             "mates": mates,
-            "2dcurve": hafedge_index,
+            "2dcurve": halfedge_index,
             "edge": edge_index,
             "orientation_wrt_edge": orientation
         }
