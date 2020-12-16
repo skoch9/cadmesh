@@ -102,3 +102,9 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Visual studio code
+.vscode/
+
+# The results directory with test output in it
+results/
