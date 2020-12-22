@@ -187,41 +187,10 @@ class TopologyDictBuilder:
         }
 
 
-    def debug_check_correct_vertex_order(
-        self, 
-        edge, 
-        start_vertex,
-        end_vertex
-    ):
-        """
-        Check the correct vertex is used as the start and end vertex
-        given the geometry of the edge curve
-        """
-        curve = BRepAdaptor_Curve(edge)
-        t_start = curve.FirstParameter()
-        t_end = curve.LastParameter()
-        start_point = curve.Value(t_start)
-        end_point = curve.Value(t_end)
-
-        start_point_from_vertex = BRep_Tool.Pnt(start_vertex)
-        end_point_from_vertex = BRep_Tool.Pnt(end_vertex)
-
-        tolerance = 0.01
-        # print(f"start_point {self.point_to_str(start_point)}")
-        # print(f"start_point_from_vertex {self.point_to_str(start_point_from_vertex)}")
-        # print(f"end_point {self.point_to_str(end_point)}")
-        # print(f"end_point_from_vertex {self.point_to_str(end_point_from_vertex)}")
-        assert start_point.IsEqual(start_point_from_vertex, tolerance)
-        assert end_point.IsEqual(end_point_from_vertex, tolerance)
-
-
     def build_edge_data(self, top_exp, edge):
         index_of_edge = self.entity_mapper.edge_index(edge)
         start_vertex = topexp.FirstVertex(edge)
         end_vertex = topexp.LastVertex(edge)
-
-        # Check this actually gets the vertex order correct
-        self.debug_check_correct_vertex_order(edge, start_vertex, end_vertex)
 
         start_vertex_index = self.entity_mapper.vertex_index(start_vertex)
         end_vertex_index = self.entity_mapper.vertex_index(end_vertex)
