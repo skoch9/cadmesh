@@ -434,22 +434,21 @@ class TopologyDictBuilderUtest(unittest.TestCase):
 
                 loop_index = entity_mapper.loop_index(wire)
 
-                # Use the wire checker.  See 
-                # https://old.opencascade.com/doc/occt-7.4.0/overview/html/occt_user_guides__shape_healing.html#occt_shg_3_1_2
-                # The tolerance in the docs is 1e-04
+                # Run the wire checker.  It appears to detect some problems
+                # with order which are not consistent with my own checking
                 checking_tol = 1e-2
                 wire_checker = ShapeAnalysis_Wire(wire, face, checking_tol)
                 wire_checker.Perform()
                 closed_ok = wire_checker.CheckClosed(checking_tol)
-                # if not closed_ok:
-                #     print("Warning!! - Open wire")
-                order_ok = True # HACK wire_checker.CheckOrder()
-                if order_ok:
-                    self.check_loop_order(output, wire, entity_mapper)
-                    self.check_loop_orientation(wire, face)
-                    self.check_orientations_of_2d_and_3d_curves(wire, face)
-                else:
+                order_bad = wire_checker.CheckOrder()
+                if order_bad:
                     print("Warning!! - Found bad wire order!")
+
+                self.check_loop_order(output, wire, entity_mapper)
+                self.check_loop_orientation(wire, face)
+                self.check_orientations_of_2d_and_3d_curves(wire, face)
+                
+                    
 
     def find_faces_for_body(output, body_index):
         face_indices = set()
