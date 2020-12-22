@@ -29,7 +29,9 @@ from OCC.Core.TopLoc import TopLoc_Location
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.BRepTools import breptools
 from OCC.Extend.TopologyUtils import TopologyExplorer, WireExplorer
+from OCC.Core.TopExp import topexp
 from OCC.Core.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Curve2d, BRepAdaptor_Surface
+from OCC.Core.ShapeAnalysis import ShapeAnalysis_Wire
 from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
 from OCC.Core.GCPnts import GCPnts_QuasiUniformDeflection
 from OCC.Display.SimpleGui import init_display
@@ -111,6 +113,19 @@ class TopologyDictBuilderUtest(unittest.TestCase):
                     verts.append(list(mesh.Node(i).Coord()))
 
         igl.write_triangle_mesh(str(output_pathname), np.array(verts), np.array(tris))
+
+    def debug_print_wire_poly(self, wire):
+        poly = self.create_3d_polygon(wire)
+        print("create line continuous")
+        for point in poly:
+            print(f"world {point[0]} {point[1]} {point[2]}")
+
+
+    def debug_view_body(self, body):
+        pyqt5_display, start_display, add_menu, add_function_to_menu = init_display('qt-pyqt5')
+        pyqt5_display.DisplayShape(body, update=True)
+        start_display()
+
 
     def make_non_manifold_body(self):
         b1 = BRepPrimAPI_MakeBox(gp_Pnt(0, 0, 0), 10, 10, 10).Shape()
@@ -252,6 +267,28 @@ class TopologyDictBuilderUtest(unittest.TestCase):
         shift_down = np.arange(-1, n-1)    
         return (x * (y.take(shift_up) - y.take(shift_down))).sum() / 2.0
 
+    def create_3d_polygon(self, wire):
+        wire_exp = WireExplorer(wire)
+        halfedges = wire_exp.ordered_edges()
+        points = []
+        for halfedge in halfedges:
+            curve_3d = BRepAdaptor_Curve(halfedge)
+            halfedge_orientation = topology_utils.orientation_to_sense(halfedge.Orientation())
+            num_points_per_curve = 10
+            tmin = curve_3d.FirstParameter()
+            tmax = curve_3d.LastParameter()
+
+            if halfedge_orientation:
+                t_params = np.linspace(tmin, tmax, num_points_per_curve)
+            else:
+                t_params = np.linspace(tmax, tmin, num_points_per_curve)
+
+            for i in range(t_params.size):
+                t = t_params[i]
+                pt3d = curve_3d.Value(t)
+                points.append(self.convert_gp_pnt3d_to_numpy(pt3d))
+        return np.stack(points)
+
     def create_2d_polygon(self, wire, face):
         wire_exp = WireExplorer(wire)
         halfedges = wire_exp.ordered_edges()
@@ -305,12 +342,20 @@ class TopologyDictBuilderUtest(unittest.TestCase):
             self.assertAlmostEqual(tmax3d, tmax2d, places=3)
             num_points = 10
             t_params = np.linspace(tmin2d, tmax2d, num_points)
+
+            # We only want to see errors when we made a mistake with the
+            # code and don't understand how Open Cascade works...
+            bt = BRep_Tool()
+            edge_tolerance = bt.Tolerance(halfedge)
+            extra_tolerance = 0.01 
+            tolerance = edge_tolerance + extra_tolerance
+
             for i in range(num_points):
                 t = t_params[i]
                 uv = curve2.Value(t)
                 pt_from_2d = self.convert_gp_pnt3d_to_numpy(surf.Value(uv.X(), uv.Y()))
                 pt3d = self.convert_gp_pnt3d_to_numpy(curve3.Value(t))
-                self.assertTrue(np.allclose(pt_from_2d, pt3d, atol=1e-3))
+                self.assertTrue(np.allclose(pt_from_2d, pt3d, atol=tolerance))
 
 
     def check_loop_orientation(self, wire, face):
@@ -334,6 +379,7 @@ class TopologyDictBuilderUtest(unittest.TestCase):
         found_positive_area = (area > 0.0)
         if expect_positive_area != found_positive_area:
             self.display_poly(poly)
+            self.debug_print_wire_poly(wire)
 
         if expect_positive_area:
             self.assertTrue(area > 0.0)
@@ -385,9 +431,25 @@ class TopologyDictBuilderUtest(unittest.TestCase):
         for face in faces:
             wires = top_exp.wires_from_face(face)
             for wire in wires:
-                self.check_loop_order(output, wire, entity_mapper)
-                self.check_loop_orientation(wire, face)
-                self.check_orientations_of_2d_and_3d_curves(wire, face)
+
+                loop_index = entity_mapper.loop_index(wire)
+
+                # Use the wire checker.  See 
+                # https://old.opencascade.com/doc/occt-7.4.0/overview/html/occt_user_guides__shape_healing.html#occt_shg_3_1_2
+                # The tolerance in the docs is 1e-04
+                checking_tol = 1e-2
+                wire_checker = ShapeAnalysis_Wire(wire, face, checking_tol)
+                wire_checker.Perform()
+                closed_ok = wire_checker.CheckClosed(checking_tol)
+                # if not closed_ok:
+                #     print("Warning!! - Open wire")
+                order_ok = True # HACK wire_checker.CheckOrder()
+                if order_ok:
+                    self.check_loop_order(output, wire, entity_mapper)
+                    self.check_loop_orientation(wire, face)
+                    self.check_orientations_of_2d_and_3d_curves(wire, face)
+                else:
+                    print("Warning!! - Found bad wire order!")
 
     def find_faces_for_body(output, body_index):
         face_indices = set()
@@ -419,6 +481,78 @@ class TopologyDictBuilderUtest(unittest.TestCase):
 
         self.assertTrue(face_indices == face_indices_from_body)
 
+
+    def check_edge_and_vertex_order(
+            self,
+            output, 
+            edge,
+            entity_mapper
+        ):
+        index_of_edge = entity_mapper.edge_index(edge)
+        edge_data = output["edges"][index_of_edge]
+
+        start_vertex = topexp.FirstVertex(edge)
+        end_vertex = topexp.LastVertex(edge)
+
+        start_vertex_index = entity_mapper.vertex_index(start_vertex)
+        end_vertex_index = entity_mapper.vertex_index(end_vertex)
+
+        start_vertex_from_output = edge_data["start_vertex"]
+        end_vertex_from_output = edge_data["end_vertex"]
+        
+        self.assertTrue(start_vertex_index == start_vertex_from_output)
+        self.assertTrue(end_vertex_index == end_vertex_from_output)
+
+
+        # Here we want to check that the start and end vertices are
+        # consistent with the start and end points on the edges
+        # 3d curve
+
+        curve = BRepAdaptor_Curve(edge)
+        t_start = curve.FirstParameter()
+        t_end = curve.LastParameter()
+        start_point = curve.Value(t_start)
+        end_point = curve.Value(t_end)
+
+        start_point_from_vertex = BRep_Tool.Pnt(start_vertex)
+        end_point_from_vertex = BRep_Tool.Pnt(end_vertex)
+
+        bt = BRep_Tool()
+        vertex_tolerance = bt.Tolerance(start_vertex) + bt.Tolerance(end_vertex)
+        edge_tolerance = bt.Tolerance(edge)
+
+        # Some extra tolerance just to be sure something is really wrong
+        # We only want to see errors when we made a mistake with the
+        # code and don't understand how Open Cascade works...
+        extra_tolerance = 0.01 
+        tolerance = vertex_tolerance + edge_tolerance + extra_tolerance
+
+        vertices_consistent = start_point.IsEqual(start_point_from_vertex, tolerance) and \
+                              end_point.IsEqual(end_point_from_vertex, tolerance)
+        if not vertices_consistent:
+            print(f"start_point {self.point_to_str(start_point)}")
+            print(f"start_point_from_vertex {self.point_to_str(start_point_from_vertex)}")
+            print(f"end_point {self.point_to_str(end_point)}")
+            print(f"end_point_from_vertex {self.point_to_str(end_point_from_vertex)}")
+        self.assertTrue(start_point.IsEqual(start_point_from_vertex, tolerance))
+        self.assertTrue(end_point.IsEqual(end_point_from_vertex, tolerance))
+
+    def check_edges_and_vertices(
+            self,
+            output, 
+            body, 
+            entity_mapper
+        ):
+        top_exp = TopologyExplorer(body)
+        edges = top_exp.edges()
+        for edge in edges:
+            self.check_edge_and_vertex_order(
+                output, 
+                edge,
+                entity_mapper
+            )
+
+
     def check_output_for_body(
             self, 
             output, 
@@ -431,6 +565,15 @@ class TopologyDictBuilderUtest(unittest.TestCase):
         mesh = BRepMesh_IncrementalMesh(body, 0.9, False, 0.5, True)
         mesh.Perform()
         self.assertTrue(mesh.IsDone())
+
+        body_index = entity_mapper.body_index(body)
+
+        # To view a body set this to the index of the body
+        # you would like to look at
+        view_body = -1
+        if body_index == view_body:
+            self.debug_view_body(body)
+            self.debug_save_mesh("results/debug_mesh.obj", body)
 
         # If we have non-manifold bodies then there are some 
         # some faces appear twice in the list of face-uses in the 
@@ -447,6 +590,11 @@ class TopologyDictBuilderUtest(unittest.TestCase):
         self.check_order_of_all_loops(
             output,
             body,
+            entity_mapper
+        )
+        self.check_edges_and_vertices(
+            output, 
+            body, 
             entity_mapper
         )
 
