@@ -1,5 +1,7 @@
 # PythonOCC
 from OCC.Extend.TopologyUtils import TopologyExplorer
+from OCC.Core.TopoDS import TopoDS_Shape
+
 
 # CAD
 import topology_utils as topology_utils
@@ -38,6 +40,10 @@ class EntityMapper:
         # "primary" faces which the topology explorer returns
         # with "ignore_orientation" set true
         self.primary_face_orientations_map = dict()
+        
+        # Create list if only one body is handed in
+        if isinstance(bodies, TopoDS_Shape): 
+            bodies = [bodies]
 
         for body in bodies:
             top_exp = TopologyExplorer(body)
@@ -59,6 +65,12 @@ class EntityMapper:
     # The following functions are the interface for 
     # users of the class to access the indices
     # which will reptresent the Open Cascade entities
+    
+    def get_nr_of_edges(self):
+        return len(self.edge_map.keys())
+
+    def get_nr_of_surfaces(self):
+        return len(self.face_map.keys())
 
     def body_index(self, body):
         """
