@@ -1,0 +1,11 @@
+name: cad
+channels:
+  - conda-forge
+dependencies:
+  - numpy
+  - pythonocc-core==7.4.0
+  - jupyter
+  - igl
+  - pyyaml
+  - meshplot
+  - joblib
