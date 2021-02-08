@@ -7,6 +7,10 @@ from OCC.Core.TopAbs import (TopAbs_VERTEX, TopAbs_EDGE, TopAbs_FACE, TopAbs_WIR
                              TopAbs_COMPSOLID)
 from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
 from OCC.Core.BRep import BRep_Tool
+from OCC.Core.TopoDS import TopoDS_Shape
+from OCC.Core.ShapeAnalysis import ShapeAnalysis_Wire
+from OCC.Core.ShapeExtend import *
+
 
 # CAD
 import topology_utils as topology_utils
@@ -27,9 +31,11 @@ class TopologyDictBuilder:
     def build_dict_for_bodies(self, bodies):
         """
         Build the dictionary for these bodies
-        """        
+        """
+        if isinstance(bodies, TopoDS_Shape):
+            bodies = [bodies]
+            
         body_dict = {
-            "bodies": self.build_bodies_array(bodies),
             "regions": self.build_regions_array(bodies),
             "shells": self.build_shells_array(bodies),
             "faces": self.build_faces_array(bodies),
@@ -37,6 +43,8 @@ class TopologyDictBuilder:
             "loops": self.build_loops_array(bodies),
             "halfedges": self.build_halfedges_array(bodies)
         }
+        if len(bodies) > 1:
+            body_dict["bodies"] = self.build_bodies_array(bodies)
 
         return body_dict
 
@@ -183,7 +191,6 @@ class TopologyDictBuilder:
             "surface": index_of_face,
             "surface_orientation": orientation,
             "loops": loop_indices,
-            "trim_domain": index_of_face
         }
 
 
@@ -211,8 +218,9 @@ class TopologyDictBuilder:
         # print(f"start_point_from_vertex {self.point_to_str(start_point_from_vertex)}")
         # print(f"end_point {self.point_to_str(end_point)}")
         # print(f"end_point_from_vertex {self.point_to_str(end_point_from_vertex)}")
-        assert start_point.IsEqual(start_point_from_vertex, tolerance)
-        assert end_point.IsEqual(end_point_from_vertex, tolerance)
+        
+        #assert start_point.IsEqual(start_point_from_vertex, tolerance)
+        #assert end_point.IsEqual(end_point_from_vertex, tolerance)
 
 
     def build_edge_data(self, top_exp, edge):
@@ -234,13 +242,33 @@ class TopologyDictBuilder:
 
 
     def build_loop_data(self, top_exp, loop):
+        nr = top_exp.number_of_faces_from_wires(loop)
+        assert nr == 1
+        face = list(top_exp.faces_from_wire(loop))[0]
+        saw = ShapeAnalysis_Wire(loop, face, 1e-8)
+        #saw.Perform()
+        sd = {}
+        sd["order"] = saw.CheckOrder()
+        sd["connected"] = saw.CheckConnected()
+        sd["small"] = saw.CheckSmall()
+        sd["edgecurves"] = saw.CheckEdgeCurves()
+        sd["degenerated"] = saw.CheckDegenerated()
+        sd["closed"] = saw.CheckClosed()
+        
+        sd["sisect"] = saw.CheckSelfIntersection()
+        sd["lack"] = saw.CheckLacking()
+        sd["gap3d"] = saw.CheckGaps3d()
+        sd["gap2d"] = saw.CheckGaps2d()
+        sd["gapcurve"] = saw.CheckCurveGaps()
+        
         wire_exp = WireExplorer(loop)
         halfedge_indices = []
         halfedges = wire_exp.ordered_edges()
         for halfedge in halfedges:
             halfedge_indices.append(self.entity_mapper.halfedge_index(halfedge))
         return {
-            "halfedges": halfedge_indices
+            "halfedges": halfedge_indices,
+            "status": sd
         }
 
 
