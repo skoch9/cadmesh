@@ -36,7 +36,7 @@ class TopologyDictBuilder:
             bodies = [bodies]
             
         body_dict = {
-            "lumps": self.build_lumps_array(bodies),
+            "solids": self.build_solids_array(bodies),
             "shells": self.build_shells_array(bodies),
             "faces": self.build_faces_array(bodies),
             "edges": self.build_edges_array(bodies),
@@ -54,16 +54,16 @@ class TopologyDictBuilder:
             bodies_arr.append(self.build_body_data(body))
         return bodies_arr
 
-    def build_lumps_array(self, bodies):
-        lumps_arr = []
+    def build_solids_array(self, bodies):
+        solids_arr = []
         for body in bodies:
             top_exp = TopologyExplorer(body)
-            lumps = top_exp.solids()
-            for lump in lumps:
-                expected_lump_index = self.entity_mapper.lump_index(lump)
-                assert expected_lump_index == len(lumps_arr)
-                lumps_arr.append(self.build_lump_data(top_exp, lump))
-        return lumps_arr
+            solids = top_exp.solids()
+            for solid in solids:
+                expected_solid_index = self.entity_mapper.solid_index(solid)
+                assert expected_solid_index == len(solids_arr)
+                solids_arr.append(self.build_solid_data(top_exp, solid))
+        return solids_arr
         
 
     def build_shells_array(self, bodies):
@@ -132,19 +132,19 @@ class TopologyDictBuilder:
         return halfedges_arr
 
     def build_body_data(self, body):
-        lump_indices = []
+        solid_indices = []
         top_exp = TopologyExplorer(body)
-        lumps = top_exp.solids()
-        for lump in lumps:
-            lump_index = self.entity_mapper.lump_index(lump)
-            lump_indices.append(lump_index)
+        solids = top_exp.solids()
+        for solid in solids:
+            solid_index = self.entity_mapper.solid_index(solid)
+            solid_indices.append(solid_index)
         return {
-            "lumps": lump_indices
+            "solids": solid_indices
         }
 
-    def build_lump_data(self, top_exp, lump):
+    def build_solid_data(self, top_exp, solid):
         shell_indices = []
-        shells = top_exp._loop_topo(TopAbs_SHELL, lump)
+        shells = top_exp._loop_topo(TopAbs_SHELL, solid)
         for shell in shells:
             shell_orientation = topology_utils.orientation_to_sense(shell.Orientation())
             shell_indices.append(self.entity_mapper.shell_index(shell))
@@ -172,7 +172,7 @@ class TopologyDictBuilder:
                 }
             )
         return {
-            "orientation_wrt_lump": shell_orientation,
+            "orientation_wrt_solid": shell_orientation,
             "faces": face_list
         }
 
