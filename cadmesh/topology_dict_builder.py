@@ -20,13 +20,13 @@ class TopologyDictBuilder:
     A class which builds a python dictionary
     ready for export to the topology file
     """
-    def __init__(self, entity_mapper):
+    def __init__(self, entity_mapper, allow_nonmanifold = False):
         """
         Construct from the entity mapper which gives
         us a mapping between the 
         """
         self.entity_mapper = entity_mapper
-
+        self.allow_nonmanifold = allow_nonmanifold
 
     def build_dict_for_bodies(self, bodies):
         """
@@ -36,7 +36,7 @@ class TopologyDictBuilder:
             bodies = [bodies]
             
         body_dict = {
-            "regions": self.build_regions_array(bodies),
+            "solids": self.build_solids_array(bodies),
             "shells": self.build_shells_array(bodies),
             "faces": self.build_faces_array(bodies),
             "edges": self.build_edges_array(bodies),
@@ -54,16 +54,16 @@ class TopologyDictBuilder:
             bodies_arr.append(self.build_body_data(body))
         return bodies_arr
 
-    def build_regions_array(self, bodies):
-        regions_arr = []
+    def build_solids_array(self, bodies):
+        solids_arr = []
         for body in bodies:
             top_exp = TopologyExplorer(body)
-            regions = top_exp.solids()
-            for region in regions:
-                expected_region_index = self.entity_mapper.region_index(region)
-                assert expected_region_index == len(regions_arr)
-                regions_arr.append(self.build_region_data(top_exp, region))
-        return regions_arr
+            solids = top_exp.solids()
+            for solid in solids:
+                expected_solid_index = self.entity_mapper.solid_index(solid)
+                assert expected_solid_index == len(solids_arr)
+                solids_arr.append(self.build_solid_data(top_exp, solid))
+        return solids_arr
         
 
     def build_shells_array(self, bodies):
@@ -132,19 +132,19 @@ class TopologyDictBuilder:
         return halfedges_arr
 
     def build_body_data(self, body):
-        region_indices = []
+        solid_indices = []
         top_exp = TopologyExplorer(body)
-        regions = top_exp.solids()
-        for region in regions:
-            region_index = self.entity_mapper.region_index(region)
-            region_indices.append(region_index)
+        solids = top_exp.solids()
+        for solid in solids:
+            solid_index = self.entity_mapper.solid_index(solid)
+            solid_indices.append(solid_index)
         return {
-            "regions": region_indices
+            "solids": solid_indices
         }
 
-    def build_region_data(self, top_exp, region):
+    def build_solid_data(self, top_exp, solid):
         shell_indices = []
-        shells = top_exp._loop_topo(TopAbs_SHELL, region)
+        shells = top_exp._loop_topo(TopAbs_SHELL, solid)
         for shell in shells:
             shell_orientation = orientation_to_sense(shell.Orientation())
             shell_indices.append(self.entity_mapper.shell_index(shell))
@@ -172,7 +172,7 @@ class TopologyDictBuilder:
                 }
             )
         return {
-            "orientation_wrt_region": shell_orientation,
+            "orientation_wrt_solid": shell_orientation,
             "faces": face_list
         }
 
@@ -239,7 +239,8 @@ class TopologyDictBuilder:
 
     def build_loop_data(self, top_exp, loop):
         nr = top_exp.number_of_faces_from_wires(loop)
-        assert nr == 1
+        if not self.allow_nonmanifold:
+            assert nr == 1
         face = list(top_exp.faces_from_wire(loop))[0]
         saw = ShapeAnalysis_Wire(loop, face, 1e-8)
         #saw.Perform()

@@ -599,7 +599,8 @@ class TopologyDictBuilderUtest(unittest.TestCase):
 
     def build_dict_for_bodies(self, bodies, expect_manifold):
         entity_mapper = EntityMapper(bodies)
-        dict_builder = TopologyDictBuilder(entity_mapper)
+        allow_non_manifold = not expect_manifold
+        dict_builder = TopologyDictBuilder(entity_mapper, allow_non_manifold)
         output = dict_builder.build_dict_for_bodies(bodies)
         for body in bodies:
             self.check_output_for_body(output, body, entity_mapper, expect_manifold)
