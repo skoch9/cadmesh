@@ -25,7 +25,7 @@ class EntityMapper:
         # PythonOCC hash values to the indices used in 
         # the topology file
         self.body_map = dict()
-        self.region_map = dict()
+        self.solid_map = dict()
         self.shell_map = dict()
         self.face_map = dict()
         self.loop_map = dict()
@@ -50,7 +50,7 @@ class EntityMapper:
 
             # Build the index lookup tables
             self.append_body(body)
-            self.append_regions(top_exp)
+            self.append_solids(top_exp)
             self.append_shells(top_exp)
             self.append_faces(top_exp)
             self.append_loops(top_exp)
@@ -79,12 +79,12 @@ class EntityMapper:
         h = self.get_hash(body)
         return self.body_map[h]
 
-    def region_index(self, region):
+    def solid_index(self, solid):
         """
-        Find the index of a region
+        Find the index of a solid
         """
-        h = self.get_hash(region)
-        return self.region_map[h]
+        h = self.get_hash(solid)
+        return self.solid_map[h]
 
     def shell_index(self, shell):
         """
@@ -152,16 +152,16 @@ class EntityMapper:
         assert not h in self.body_map
         self.body_map[h] = index
 
-    def append_regions(self, top_exp):
-        regions = top_exp.solids()
-        for region in regions:
-            self.append_region(region)
+    def append_solids(self, top_exp):
+        solids = top_exp.solids()
+        for solid in solids:
+            self.append_solid(solid)
 
-    def append_region(self, region):
-        h = self.get_hash(region)
-        index = len(self.region_map)
-        assert not h in self.region_map
-        self.region_map[h] = index
+    def append_solid(self, solid):
+        h = self.get_hash(solid)
+        index = len(self.solid_map)
+        assert not h in self.solid_map
+        self.solid_map[h] = index
 
     def append_shells(self, top_exp):
         shells = top_exp.shells()
