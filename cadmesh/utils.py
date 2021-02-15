@@ -134,7 +134,7 @@ def get_boundingbox(body, tol=1e-6, use_mesh=True, logger=None):
     if use_mesh:
         if logger:
             logger.info("Meshing body: Init")
-        mesh = BRepMesh_IncrementalMesh(body, 0.95, False, 0.1, True)
+        mesh = BRepMesh_IncrementalMesh(body, 0.95, True, 0.1, True)
         #mesh.SetParallel(True)
         mesh.SetShape(body)
         mesh.Perform()
@@ -325,6 +325,7 @@ def convert_3dcurve(edge, curve_input=False):
     else:
         curve = edge
     c_type = edge_type(curve.GetType())
+    d1_feat["interval"] = [curve.FirstParameter(), curve.LastParameter()]
     d1_feat["type"] = c_type
     
     if c_type == "Other":
@@ -451,9 +452,15 @@ def convert_surface(face):
     surf = BRepAdaptor_Surface(face)
     s_type = surf_type(surf.GetType())
     d2_feat["type"] = s_type
+    _round = lambda x: round(x, 15)
+    d2_feat["trim_domain"] = list(map(_round, breptools_UVBounds(face)))
+    #print(surf.FirstUParameter(), surf.LastUParameter(), surf.FirstVParameter(), surf.LastVParameter())
+    #print(d2_feat["face_domain"])
+
         
     if s_type == "Plane":
         s = surf.Plane()
+        #print(dir(s), dir(surf), type(s), type(surf))
         d2_feat["location"] = list(s.Location().Coord())
         d2_feat["z_axis"] = list(s.Axis().Direction().Coord())
         d2_feat["x_axis"] = list(s.XAxis().Direction().Coord())
@@ -582,9 +589,9 @@ def convert_surface(face):
 
 
 
-from entity_mapper import EntityMapper
-from topology_dict_builder import TopologyDictBuilder
-from geometry_dict_builder import GeometryDictBuilder
+from .entity_mapper import EntityMapper
+from .topology_dict_builder import TopologyDictBuilder
+from .geometry_dict_builder import GeometryDictBuilder
 #from utils import load_bodies_from_step_file, write_dictionary_to_file, create_surface_meshes, extract_statistical_information
 
 import glob
@@ -634,10 +641,12 @@ def process(convert=False, rang=[0, 10000], data_path="./data/conv/", output_pat
     extensions = ["stp", "step"]
     step_files = []
     for ext in extensions:
-        files = [ f for f in data_dir.glob(f"*/*.{ext}")]
+        files = [ f for f in data_dir.glob(f"*.{ext}")]
         step_files.extend(sorted(files))
         
     step_files = step_files[rang[0]:rang[1]]
+    
+    print(step_files)
            
     # Process step files
     pbar = tqdm(range(len(step_files)))
@@ -706,7 +715,7 @@ def process_step_file(sf, convert, output_dir, data_format, fix):
             b.Perform()
             body = b.Shape()
         
-        topo_dict, geo_dict, meshes, stats_dict = process_body(body, logger, extract_meshes=False)
+        topo_dict, geo_dict, meshes, stats_dict = process_body(body, logger, extract_meshes=True)
         
         topo_dicts.append(topo_dict)
         geo_dicts.append(geo_dict)

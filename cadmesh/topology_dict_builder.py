@@ -13,7 +13,7 @@ from OCC.Core.ShapeExtend import *
 
 
 # CAD
-import topology_utils as topology_utils
+from .topology_utils import *
 
 class TopologyDictBuilder:
     """
@@ -146,7 +146,7 @@ class TopologyDictBuilder:
         shell_indices = []
         shells = top_exp._loop_topo(TopAbs_SHELL, region)
         for shell in shells:
-            shell_orientation = topology_utils.orientation_to_sense(shell.Orientation())
+            shell_orientation = orientation_to_sense(shell.Orientation())
             shell_indices.append(self.entity_mapper.shell_index(shell))
         return {
             "shells": shell_indices
@@ -156,11 +156,11 @@ class TopologyDictBuilder:
     def build_shell_data(self, top_exp, shell):
         face_list = []
         faces = top_exp._loop_topo(TopAbs_FACE, shell)
-        shell_orientation = topology_utils.orientation_to_sense(shell.Orientation())
+        shell_orientation = orientation_to_sense(shell.Orientation())
         for face in faces:
             # We need to know if this face-use has the same orientation 
             # as the "primary face-use"
-            face_orientation = topology_utils.orientation_to_sense(face.Orientation())
+            face_orientation = orientation_to_sense(face.Orientation())
             primary_face_orientation = self.entity_mapper.primary_face_orientation(face)
 
             # Is this face-use oriented the same way as the primary face-use
@@ -269,9 +269,9 @@ class TopologyDictBuilder:
 
 
     def build_halfedge_data(self, halfedge):
-        orientation = topology_utils.orientation_to_sense(halfedge.Orientation())
+        orientation = orientation_to_sense(halfedge.Orientation())
         mate = halfedge.Reversed()
-        orientation2 = topology_utils.orientation_to_sense(halfedge.Orientation())
+        orientation2 = orientation_to_sense(halfedge.Orientation())
         assert orientation == orientation2
         mates = []
         if self.entity_mapper.halfedge_exists(mate):

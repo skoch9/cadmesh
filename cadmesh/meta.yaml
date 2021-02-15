@@ -1,0 +1,41 @@
+{% set name = "cadmesh" %}
+{% set version = "0.2.3" %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/cadmesh-{{ version }}.tar.gz
+  sha256: 6109b68d3d1038a068682b79e9074d466bf1efe8cbfca493853c66f59b13ccc3
+
+build:
+  number: 0
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  host:
+    - pip
+    - python
+  run:
+    - python
+
+test:
+  imports:
+    - cadmesh
+    - cadmesh.OCCUtils
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/skoch9/cadmesh/
+  summary: Meshing CAD files
+  license_file: PLEASE_ADD_LICENSE_FILE
+
+extra:
+  recipe-maintainers:
+    - kochsebastian

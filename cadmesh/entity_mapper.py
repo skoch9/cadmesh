@@ -4,7 +4,7 @@ from OCC.Core.TopoDS import TopoDS_Shape
 
 
 # CAD
-import topology_utils as topology_utils
+from .topology_utils import *
 
 # Open Cascade needs to know the maximum size of the hash value
 # used to reference each entity.  We define this to be the
@@ -239,7 +239,7 @@ class EntityMapper:
 
     def append_primary_face(self, face):
         h = self.get_hash(face)
-        orientation = topology_utils.orientation_to_sense(face.Orientation())
+        orientation = orientation_to_sense(face.Orientation())
         assert not h in self.primary_face_orientations_map
         self.primary_face_orientations_map[h] = orientation
 

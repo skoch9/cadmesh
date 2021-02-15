@@ -11,8 +11,7 @@ from OCC.Core.TopoDS import TopoDS_Shape
 
 
 # CAD
-import topology_utils as topology_utils
-from utils import get_boundingbox, convert_3dcurve, convert_2dcurve, convert_surface, convert_vec_to_list
+from .utils import get_boundingbox, convert_3dcurve, convert_2dcurve, convert_surface, convert_vec_to_list
 
 class GeometryDictBuilder:
     """
