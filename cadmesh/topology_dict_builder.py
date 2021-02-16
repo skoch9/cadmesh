@@ -28,36 +28,36 @@ class TopologyDictBuilder:
         self.entity_mapper = entity_mapper
         self.allow_nonmanifold = allow_nonmanifold
 
-    def build_dict_for_bodies(self, bodies):
+    def build_dict_for_parts(self, parts):
         """
-        Build the dictionary for these bodies
+        Build the dictionary for these parts
         """
-        if isinstance(bodies, TopoDS_Shape):
-            bodies = [bodies]
+        if isinstance(parts, TopoDS_Shape):
+            parts = [parts]
             
-        body_dict = {
-            "solids": self.build_solids_array(bodies),
-            "shells": self.build_shells_array(bodies),
-            "faces": self.build_faces_array(bodies),
-            "edges": self.build_edges_array(bodies),
-            "loops": self.build_loops_array(bodies),
-            "halfedges": self.build_halfedges_array(bodies)
+        part_dict = {
+            "solids": self.build_solids_array(parts),
+            "shells": self.build_shells_array(parts),
+            "faces": self.build_faces_array(parts),
+            "edges": self.build_edges_array(parts),
+            "loops": self.build_loops_array(parts),
+            "halfedges": self.build_halfedges_array(parts)
         }
-        if len(bodies) > 1:
-            body_dict["bodies"] = self.build_bodies_array(bodies)
+        if len(parts) > 1:
+            part_dict["parts"] = self.build_parts_array(parts)
 
-        return body_dict
+        return part_dict
 
-    def build_bodies_array(self, bodies):
-        bodies_arr = []
-        for body in bodies:
-            bodies_arr.append(self.build_body_data(body))
-        return bodies_arr
+    def build_parts_array(self, parts):
+        parts_arr = []
+        for part in parts:
+            parts_arr.append(self.build_part_data(part))
+        return parts_arr
 
-    def build_solids_array(self, bodies):
+    def build_solids_array(self, parts):
         solids_arr = []
-        for body in bodies:
-            top_exp = TopologyExplorer(body)
+        for part in parts:
+            top_exp = TopologyExplorer(part)
             solids = top_exp.solids()
             for solid in solids:
                 expected_solid_index = self.entity_mapper.solid_index(solid)
@@ -66,10 +66,10 @@ class TopologyDictBuilder:
         return solids_arr
         
 
-    def build_shells_array(self, bodies):
+    def build_shells_array(self, parts):
         shells_arr = []
-        for body in bodies:
-            top_exp = TopologyExplorer(body)
+        for part in parts:
+            top_exp = TopologyExplorer(part)
             shells = top_exp.shells()
             for shell in shells:
                 expected_shell_index = self.entity_mapper.shell_index(shell)
@@ -78,10 +78,10 @@ class TopologyDictBuilder:
         return shells_arr
 
 
-    def build_faces_array(self, bodies):
+    def build_faces_array(self, parts):
         faces_arr = []
-        for body in bodies:
-            top_exp = TopologyExplorer(body)
+        for part in parts:
+            top_exp = TopologyExplorer(part)
             faces = top_exp.faces()
             for face in faces:
                 expected_face_index = self.entity_mapper.face_index(face)
@@ -90,10 +90,10 @@ class TopologyDictBuilder:
         return faces_arr
 
 
-    def build_edges_array(self, bodies):
+    def build_edges_array(self, parts):
         edges_arr = []
-        for body in bodies:
-            top_exp = TopologyExplorer(body)
+        for part in parts:
+            top_exp = TopologyExplorer(part)
             edges = top_exp.edges()
             for edge in edges:
                 expected_edge_index = self.entity_mapper.edge_index(edge)
@@ -102,10 +102,10 @@ class TopologyDictBuilder:
         return edges_arr
 
 
-    def build_loops_array(self, bodies):
+    def build_loops_array(self, parts):
         loops_arr = []
-        for body in bodies:
-            top_exp = TopologyExplorer(body)
+        for part in parts:
+            top_exp = TopologyExplorer(part)
             loops = top_exp.wires()
             for loop in loops:
                 expected_loop_index = self.entity_mapper.loop_index(loop)
@@ -114,10 +114,10 @@ class TopologyDictBuilder:
         return loops_arr
 
 
-    def build_halfedges_array(self, bodies):
+    def build_halfedges_array(self, parts):
         halfedges_arr = []
-        for body in bodies:
-            oriented_top_exp = TopologyExplorer(body, ignore_orientation=False)
+        for part in parts:
+            oriented_top_exp = TopologyExplorer(part, ignore_orientation=False)
             halfedges = oriented_top_exp.edges()
             halfedge_set = set()
             for halfedge in halfedges:
@@ -131,9 +131,9 @@ class TopologyDictBuilder:
                     halfedge_set.add(tup)
         return halfedges_arr
 
-    def build_body_data(self, body):
+    def build_part_data(self, part):
         solid_indices = []
-        top_exp = TopologyExplorer(body)
+        top_exp = TopologyExplorer(part)
         solids = top_exp.solids()
         for solid in solids:
             solid_index = self.entity_mapper.solid_index(solid)
@@ -265,7 +265,7 @@ class TopologyDictBuilder:
             halfedge_indices.append(self.entity_mapper.halfedge_index(halfedge))
         return {
             "halfedges": halfedge_indices,
-            "status": sd
+            #"status": sd
         }
 
 

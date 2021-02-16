@@ -11,7 +11,7 @@ from OCC.Core.TopoDS import TopoDS_Shape
 
 
 # CAD
-from .utils import get_boundingbox, convert_3dcurve, convert_2dcurve, convert_surface, convert_vec_to_list
+from .geometry_utils import get_boundingbox, convert_3dcurve, convert_2dcurve, convert_surface, convert_vec_to_list
 
 class GeometryDictBuilder:
     """
@@ -26,60 +26,65 @@ class GeometryDictBuilder:
         self.entity_mapper = entity_mapper
 
 
-    def build_dict_for_bodies(self, bodies, logger=None):
+    def build_dict_for_parts(self, parts, logger=None):
         """
-        Build the dictionary for these bodies
+        Build the dictionary for these parts
         """
-        if isinstance(bodies, TopoDS_Shape):
-            bodies = [bodies]
+        if isinstance(parts, TopoDS_Shape):
+            parts = [parts]
             
-        body_dicts = []
+        part_dicts = []
             
-        for body in bodies:
+        for part in parts:
             
-            surfaces, curves2d = self.build_surfaces_and_2dcurves(body)
+            surfaces, curves2d = self.build_surfaces_and_2dcurves(part)
 
-            body_dict = {
-                "bbox": get_boundingbox(body, logger=logger),
+            part_dict = {
+                "bbox": get_boundingbox(part, logger=logger),
                 "surfaces": surfaces,
-                "3dcurves": self.build_3dcurves_array(body),
+                "3dcurves": self.build_3dcurves_array(part),
                 "2dcurves": curves2d,
-                "vertices": self.build_vertices_array(body)
+                "vertices": self.build_vertices_array(part)
             }
-            body_dicts.append(body_dict)
-
-        return body_dicts
+            part_dicts.append(part_dict)
+        
+        if len(part_dicts) == 1:
+            return part_dicts[0]
+        
+        else:
+            return part_dicts
     
-    def build_vertices_array(self, body):
-        top_exp = TopologyExplorer(body)
+    
+    def build_vertices_array(self, part):
+        top_exp = TopologyExplorer(part)
         nr_verts = top_exp.number_of_vertices()
-        body_vertices = [None]*nr_verts
+        part_vertices = [None]*nr_verts
         verts = top_exp.vertices()
         for vert in verts:
             expected_vert_index = self.entity_mapper.vertex_index(vert)
-            #print(len(body_curves), expected_edge_index)
-            assert expected_vert_index >= 0 and expected_vert_index < len(body_vertices)
-            assert body_vertices[expected_vert_index] == None
-            body_vertices[expected_vert_index] = self.build_vertex_data(vert)
+            #print(len(part_curves), expected_edge_index)
+            assert expected_vert_index >= 0 and expected_vert_index < len(part_vertices)
+            assert part_vertices[expected_vert_index] == None
+            part_vertices[expected_vert_index] = self.build_vertex_data(vert)
 
-        return body_vertices
+        return part_vertices
     
     def build_vertex_data(self, vertex):
         return convert_vec_to_list(BRep_Tool.Pnt(vertex))
 
-    def build_3dcurves_array(self, body):
-        top_exp = TopologyExplorer(body)
+    def build_3dcurves_array(self, part):
+        top_exp = TopologyExplorer(part)
         nr_edges = top_exp.number_of_edges()
-        body_curves = [None]*nr_edges
+        part_curves = [None]*nr_edges
         edges = top_exp.edges()
         for edge in edges:
             expected_edge_index = self.entity_mapper.edge_index(edge)
-            #print(len(body_curves), expected_edge_index)
-            assert expected_edge_index >= 0 and expected_edge_index < len(body_curves)
-            assert body_curves[expected_edge_index] == None
-            body_curves[expected_edge_index] = self.build_3dcurve_data(edge)
+            #print(len(part_curves), expected_edge_index)
+            assert expected_edge_index >= 0 and expected_edge_index < len(part_curves)
+            assert part_curves[expected_edge_index] == None
+            part_curves[expected_edge_index] = self.build_3dcurve_data(edge)
 
-        return body_curves
+        return part_curves
     
     def build_3dcurve_data(self, edge):
         # Check this actually gets the vertex order correct
@@ -89,19 +94,19 @@ class GeometryDictBuilder:
         curve = convert_3dcurve(edge)
         return curve
 
-    def build_surfaces_and_2dcurves(self, body):
-        top_exp = TopologyExplorer(body, ignore_orientation=False)
+    def build_surfaces_and_2dcurves(self, part):
+        top_exp = TopologyExplorer(part, ignore_orientation=False)
         nr_faces = top_exp.number_of_faces()
-        body_surfaces = [None]*nr_faces
-        body_2dcurves_dict = {}
+        part_surfaces = [None]*nr_faces
+        part_2dcurves_dict = {}
 
         # Iterate over faces
         faces = top_exp.faces()
         for face in faces:
             expected_face_index = self.entity_mapper.face_index(face)
-            assert expected_face_index >= 0 and expected_face_index < len(body_surfaces)
-            assert body_surfaces[expected_face_index] == None
-            body_surfaces[expected_face_index] = convert_surface(face)
+            assert expected_face_index >= 0 and expected_face_index < len(part_surfaces)
+            assert part_surfaces[expected_face_index] == None
+            part_surfaces[expected_face_index] = convert_surface(face)
             
 #             # TODO add proper meshing code
 #             verts, tris, _, _, _ = process_face(expected_face_index, face)
@@ -112,16 +117,16 @@ class GeometryDictBuilder:
             edges = top_exp.edges_from_face(face)
             for edge in edges:                  
                 expected_halfedge_index = self.entity_mapper.halfedge_index(edge)
-                #assert expected_halfedge_index not in body_2dcurves_dict
-                body_2dcurves_dict[expected_halfedge_index] = convert_2dcurve(edge, face)
+                #assert expected_halfedge_index not in part_2dcurves_dict
+                part_2dcurves_dict[expected_halfedge_index] = convert_2dcurve(edge, face)
 
 
-        body_2dcurves = []
-        assert list(body_2dcurves_dict.keys()) == list(range(len(body_2dcurves_dict.keys())))
-        for ci in range(len(body_2dcurves_dict.keys())):
-            body_2dcurves.append(body_2dcurves_dict[ci])
+        part_2dcurves = []
+        assert list(part_2dcurves_dict.keys()) == list(range(len(part_2dcurves_dict.keys())))
+        for ci in range(len(part_2dcurves_dict.keys())):
+            part_2dcurves.append(part_2dcurves_dict[ci])
 
-        return body_surfaces, body_2dcurves
+        return part_surfaces, part_2dcurves
 
 
 
