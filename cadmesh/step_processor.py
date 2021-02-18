@@ -81,7 +81,7 @@ class StepProcessor:
     def load_step_file(self):
         self.parts = load_parts_from_step_file(self.step_file, logger=self.logger)
         
-    def process_parts(self, convert=False, fix=False, write_face_obj=True, write_part_obj=True, indices=[]):
+    def process_parts(self, convert=False, fix=False, write_face_obj=True, write_part_obj=True, indices=[], version="2.01"):
         if len(self.parts) == 0:
             self.logger.info("No parts loaded to process.")
             return
@@ -140,13 +140,13 @@ class StepProcessor:
         # Write out dictionary lists
         self.logger.info("Writing dictionaries")
         topo_yaml = self.output_dir / f"{self.step_file.stem}_topo"
-        write_dictionary_to_file(topo_yaml, {"parts": topo_dicts}, self.data_format)
+        write_dictionary_to_file(topo_yaml, {"parts": topo_dicts, "version": version}, self.data_format)
         self.logger.info("Topo dict: Done")
         geo_yaml = self.output_dir / f"{self.step_file.stem}_geo"
-        write_dictionary_to_file(geo_yaml, {"parts": geo_dicts}, self.data_format)
+        write_dictionary_to_file(geo_yaml, {"parts": geo_dicts, "version": version}, self.data_format)
         self.logger.info("Geo dict: Done")
         stats_yaml = self.output_dir / f"{self.step_file.stem}_stat"
-        write_dictionary_to_file(stats_yaml, {"parts": stats_dicts}, self.data_format)
+        write_dictionary_to_file(stats_yaml, {"parts": stats_dicts, "version": version}, self.data_format)
         self.logger.info("Stat dict: Done")
 
             
