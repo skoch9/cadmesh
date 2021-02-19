@@ -22,8 +22,8 @@ from .entity_mapper import EntityMapper
 from .geometry_dict_builder import GeometryDictBuilder
 from .topology_dict_builder import TopologyDictBuilder
 from ..mesh.mesh_builder import MeshBuilder
-from ..utils.geometry_utils import load_parts_from_step_file, write_dictionary_to_file
-from ..utils.logging_utils import setup_logger
+from ..utils.geometry import load_parts_from_step_file, write_dictionary_to_file
+from ..utils.logging import setup_logger
 
 class StepProcessor:
     """

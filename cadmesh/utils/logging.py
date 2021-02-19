@@ -86,4 +86,4 @@ def analyse_log_files(path="data/log_abc/*.log"):
     print("Success: %i/%i"%(len(success), len(logs)))
 
     for elog in elogs:
-        print(elog)
+        print(elog.strip())
