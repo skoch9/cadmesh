@@ -13,7 +13,7 @@ from OCC.Core.ShapeExtend import *
 
 
 # CAD
-from .topology_utils import *
+from ..utils.topology_utils import *
 
 class TopologyDictBuilder:
     """

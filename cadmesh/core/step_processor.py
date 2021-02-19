@@ -11,32 +11,19 @@ from OCC.Core.gp import gp_Pnt, gp_Vec, gp_Pnt2d
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_NurbsConvert
 from OCC.Core.BRepTools import breptools_UVBounds
 from OCC.Core.ShapeFix import ShapeFix_Shape as _ShapeFix_Shape
-import logging
 import os
 import igl
+from pathlib import Path
+import logging
+
 
 
 from .entity_mapper import EntityMapper
 from .geometry_dict_builder import GeometryDictBuilder
 from .topology_dict_builder import TopologyDictBuilder
-from .mesh_builder import MeshBuilder
-from .geometry_utils import load_parts_from_step_file, write_dictionary_to_file
-
-
-
-def setup_logger(name, log_file, formatter, level=logging.INFO, reset=True):
-    """To setup as many loggers as you want"""
-    if os.path.exists(log_file) and reset:
-        os.remove(log_file)
-    handler = logging.FileHandler(log_file)        
-    handler.setFormatter(formatter)
-
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    logger.addHandler(handler)
-
-    return logger
-
+from ..mesh.mesh_builder import MeshBuilder
+from ..utils.geometry_utils import load_parts_from_step_file, write_dictionary_to_file
+from ..utils.logging_utils import setup_logger
 
 class StepProcessor:
     """
@@ -67,8 +54,7 @@ class StepProcessor:
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
-        
-        # Create log
+        # Create logdir
         self.log_dir = log_dir #output_dir.stem.replace("results", "log")
         os.makedirs(self.log_dir, exist_ok=True)
         
@@ -123,7 +109,11 @@ class StepProcessor:
                 part = b.Shape()
         
             # Extract information for part
-            topo_dict, geo_dict, meshes, stats_dict = self.__process_part(part)
+            try:
+                topo_dict, geo_dict, meshes, stats_dict = self.__process_part(part)
+            except:
+                self.logger.error("Processing part failed %i"%index)
+                continue
             
             topo_dicts.append(topo_dict)
             geo_dicts.append(geo_dict)
@@ -192,4 +182,4 @@ class StepProcessor:
         else:
             meshes = []
 
-        return topo_dict, geo_dict, meshes, stats_dict            
+        return topo_dict, geo_dict, meshes, stats_dict

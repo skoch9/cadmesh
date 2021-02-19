@@ -69,6 +69,7 @@ def load_parts_from_step_file(pathname, logger=None):
         nr = 1
         try:
             while True:
+                
                 ok = step_reader.TransferRoot(nr)
                 if not ok:
                     break
@@ -81,7 +82,7 @@ def load_parts_from_step_file(pathname, logger=None):
             #print("No Shape", nr)
     else:
         logger.error("Step reading problem.")
-        raise AssertionError("Error: can't read file.")
+        #raise AssertionError("Error: can't read file.")
 
     logger.info("Loaded parts: %i"%len(shapes))
     return shapes
@@ -128,13 +129,13 @@ def vectors_parallel(v1, v2):
     cos_tol_angle = math.cos(angle_tol_rands)
     return cos_tol_angle > cos_angle
 
-def get_boundingbox(body, tol=1e-6, use_mesh=True, logger=None):
+def get_boundingbox(body, tol=1e-6, use_mesh=False, logger=None):
     bbox = Bnd_Box()
     bbox.SetGap(tol)
     if use_mesh:
         if logger:
             logger.info("Meshing body: Init")
-        mesh = BRepMesh_IncrementalMesh(body, 0.95, True, 0.1, True)
+        mesh = BRepMesh_IncrementalMesh(body, 0.01, True, 0.1, True)
         #mesh.SetParallel(True)
         mesh.SetShape(body)
         mesh.Perform()
@@ -424,5 +425,6 @@ def convert_surface(face):
         
     else:
         print("Unsupported type", s_type)
+        print(dir(surf))
     
     return d2_feat

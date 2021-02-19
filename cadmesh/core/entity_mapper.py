@@ -4,7 +4,7 @@ from OCC.Core.TopoDS import TopoDS_Shape
 
 
 # CAD
-from .topology_utils import *
+from ..utils.topology_utils import *
 
 # Open Cascade needs to know the maximum size of the hash value
 # used to reference each entity.  We define this to be the
