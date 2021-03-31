@@ -21,6 +21,7 @@ import logging
 from .entity_mapper import EntityMapper
 from .geometry_dict_builder import GeometryDictBuilder
 from .topology_dict_builder import TopologyDictBuilder
+from .statistics_dict_builder import extract_statistical_information
 from ..mesh.mesh_builder import MeshBuilder
 from ..utils.geometry import load_parts_from_step_file, write_dictionary_to_file
 from ..utils.logging import setup_logger
@@ -166,7 +167,7 @@ class StepProcessor:
             geo_dict = {}
 
         # Extract statistics
-        if self.extract_stats:
+        if True:#self.extract_stats:
             self.logger.info("Extract stats: Init")
             stats_dict = extract_statistical_information(part, entity_mapper, self.logger)
             self.logger.info("Extract stats: Done")

@@ -48,8 +48,11 @@ def with_timeout(timeout):
 
 
 @with_timeout(120.0)
-def process_single_step(sf, output_dir, log_dir):
-    sp = StepProcessor(sf, Path(output_dir), Path(log_dir), mesh_builder=None)
+def process_single_step(sf, output_dir, log_dir, produce_meshes=True):
+    if produce_meshes:
+        sp = StepProcessor(sf, Path(output_dir), Path(log_dir))
+    else: 
+        sp = StepProcessor(sf, Path(output_dir), Path(log_dir), mesh_builder=None)
     sp.load_step_file()
     sp.process_parts()
     return True        

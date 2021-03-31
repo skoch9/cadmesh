@@ -8,6 +8,8 @@ from OCC.Core.BRepAdaptor import BRepAdaptor_Curve
 from OCC.Core.BRep import BRep_Tool
 from OCC.Core.TopoDS import TopoDS_Shape
 from OCC.Core.TopLoc import TopLoc_Location
+from OCC.Core.BRepMesh import BRepMesh_IncrementalMesh
+
 
 
 
@@ -18,6 +20,15 @@ class MeshBuilder:
         
     def create_surface_meshes(self, part):
         top_exp = TopologyExplorer(part, ignore_orientation=False)
+        
+        mesh = BRepMesh_IncrementalMesh(part, 0.01, True, 0.1, True)
+        #mesh.SetParallel(True)
+        mesh.SetShape(part)
+        mesh.Perform()
+        assert mesh.IsDone()
+        
+        if self.logger:
+            self.logger.info("Meshing body: Done")
         nr_faces = top_exp.number_of_faces()
         meshes = [None]*nr_faces
         # Iterate over faces
