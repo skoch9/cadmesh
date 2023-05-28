@@ -85,7 +85,7 @@ def analyse_curve_and_surface_types(path):
         #surfs = Counter(r[2])
         g_lines.update(r[1])
         g_surfs.update(r[2])
-        if surfs["Revolution"] > 0 or surfs["Extrusion"] > 0:
+        if g_surfs["Revolution"] > 0 or g_surfs["Extrusion"] > 0:
             rev_ext.append(nr)
             
     plot_types(g_lines, title="Curve types")

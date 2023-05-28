@@ -64,6 +64,7 @@ def process_step_folder(data_path="data/simple", output_path="data/results_simpl
     log_dir = Path(log_path)
     
     step_files = sorted(data_dir.glob(file_pattern))
+    print(step_files)
     if file_range[1] == -1:
         step_files = step_files[file_range[0]:]
     else:
