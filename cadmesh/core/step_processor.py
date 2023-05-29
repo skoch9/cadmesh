@@ -144,7 +144,10 @@ class StepProcessor:
     def __process_part(self, part):
         self.logger.info("Entity mapper: Init")
         entity_mapper = self.entity_mapper([part])
+
         self.logger.info("Entity mapper: Done")
+        del part  # Delete part as it might be taking up memory
+        gc.collect()  # Manually trigger garbage collection
 
         # Extract topology
         if self.extract_topo:
@@ -156,6 +159,9 @@ class StepProcessor:
         else:
             topo_dict = {}
 
+        del topo_dict_builder  # Delete the topo_dict_builder as it might be taking up memory
+        gc.collect()  # Manually trigger garbage collection
+
         # Extract geometry
         if self.extract_geometry:
             self.logger.info("Extract geo: Init")
@@ -166,13 +172,19 @@ class StepProcessor:
         else:
             geo_dict = {}
 
+        del geo_dict_builder  # Delete the geo_dict_builder as it might be taking up memory
+        gc.collect()  # Manually trigger garbage collection
+
         # Extract statistics
-        if True:#self.extract_stats:
+        if True:  # self.extract_stats:
             self.logger.info("Extract stats: Init")
             stats_dict = extract_statistical_information(part, entity_mapper, self.logger)
             self.logger.info("Extract stats: Done")
         else:
             stats_dict = {}
+
+        del entity_mapper  # Delete the entity_mapper as it might be taking up memory
+        gc.collect()  # Manually trigger garbage collection
 
         # Extract meshes
         if self.extract_meshes:
@@ -182,5 +194,8 @@ class StepProcessor:
             self.logger.info("Extract mesh: Done")
         else:
             meshes = []
+
+        del mesh_builder  # Delete the mesh_builder as it might be taking up memory
+        gc.collect()  # Manually trigger garbage collection
 
         return topo_dict, geo_dict, meshes, stats_dict
