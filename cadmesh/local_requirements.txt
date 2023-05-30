@@ -26,7 +26,6 @@ click
 cookiecutter==1.7.3
 cryptography
 cycler
-dataclasses
 debugpy
 decorator
 defusedxml
