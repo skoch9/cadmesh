@@ -9,7 +9,6 @@
 module load python/3.9
 module load mpi4py/3.0.3
 
-
 DATA_PATH="$SCRATCH/madduri/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step"
 OUTPUT_PATH="$SCRATCH/madduri/Fusion360/segmentation/yaml/s2.0.1_extended"
 LOG_PATH="$SCRATCH/madduri/Fusion360/segmentation/yaml/logs"
@@ -22,6 +21,6 @@ source ~/envs/cad/bin/activate
 
 for FILE in "${FILES[@]}"; do
     FILE_PATH="$DATA_PATH/$FILE"
-    mpiexec -np 4 python data_conversion.py --input "$FILE_PATH" --output "$OUTPUT_PATH" --log "$LOG_PATH"
+    mpiexec --oversubscribe -np $SLURM_CPUS_PER_TASK python data_conversion.py --input "$FILE_PATH" --output "$OUTPUT_PATH" --log "$LOG_PATH"
 done
 
