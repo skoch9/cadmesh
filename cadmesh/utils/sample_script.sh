@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --array=0-4%5
 
-module load python/3.7.0
+module load python/3.9.0
 module load mpi4py/3.0.3
 
 # Get the username for the path
