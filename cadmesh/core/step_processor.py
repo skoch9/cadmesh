@@ -24,7 +24,7 @@ from .topology_dict_builder import TopologyDictBuilder
 from .statistics_dict_builder import extract_statistical_information
 from ..mesh.mesh_builder import MeshBuilder
 from ..utils.geometry import load_parts_from_step_file, write_dictionary_to_file
-from ..utils.logging import setup_logger
+from ..utils.my_logging import setup_logger
 
 class StepProcessor:
     """
