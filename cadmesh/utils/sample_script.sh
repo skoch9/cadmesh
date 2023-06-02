@@ -6,8 +6,11 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-4
 
-module load python/3.7.0
+module load python/3.9.0
 module load mpi4py/3.0.3
+
+# Activate Python environment
+source projects/def-teseo/madduri/envs/cad/bin/activate
 
 # Get the username for the path
 USER_NAME=$USER
