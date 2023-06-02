@@ -24,5 +24,5 @@ LOG_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/yaml/logs"
 FILES=($(ls -1 "$DATA_PATH"/*.stp | sed -n "$((SLURM_ARRAY_TASK_ID*100+1)),$((SLURM_ARRAY_TASK_ID*100+100))p"))
 
 for FILE in "${FILES[@]}"; do
-    mpiexec -np 4 python your_script.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
+    mpiexec -np 4 python data_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
 done

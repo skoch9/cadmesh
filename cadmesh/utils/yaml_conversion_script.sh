@@ -25,6 +25,6 @@ FILES=($(ls -1 "$DATA_PATH"/*.stp | sed -n "$((SLURM_ARRAY_TASK_ID*100+1)),$((SL
 
 for FILE in "${FILES[@]}"; do
     if [[ -f "$FILE" ]]; then  # Only process if file exists
-        mpiexec -np 4 python your_script.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
+        mpiexec -np 4 python data_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
     fi
 done
