@@ -13,9 +13,9 @@ module load mpi4py/3.0.3
 USER_NAME=$USER
 
 # Define paths relative to the scratch directory
-DATA_PATH="/scratch/$USER_NAME/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step"
-OUTPUT_PATH="/scratch/$USER_NAME/Fusion360/segmentation/yaml/s2.0.1_extended"
-LOG_PATH="/scratch/$USER_NAME/Fusion360/segmentation/yaml/logs"
+DATA_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step"
+OUTPUT_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/yaml/s2.0.1_extended"
+LOG_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/yaml/logs"
 
 # Get the batch of files this task should process
 FILES=($(ls -1 "$DATA_PATH"/*.stp | sed -n "$((SLURM_ARRAY_TASK_ID*100+1)),$((SLURM_ARRAY_TASK_ID*100+100))p"))
