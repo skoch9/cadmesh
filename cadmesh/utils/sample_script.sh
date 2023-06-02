@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --time=00:30:00
-#SBATCH --account=def-someuser
+#SBATCH --time=00:10:00
+#SBATCH --account=def-teseo
 #SBATCH --job-name=step-process
 #SBATCH --mem-per-cpu=4G
 #SBATCH --cpus-per-task=4
