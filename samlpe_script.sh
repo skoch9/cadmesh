@@ -9,7 +9,7 @@ module load python/3.8.10
 module load mpi4py/3.0.3
 
 # Activate Python environment
-source ~/scratch/projects/def-teseo/madduri/envs/cad/bin/activate
+source ~/scratch/madduri/cad/bin/activate
 
 # Get the username for the path
 USER_NAME=$USER
@@ -24,7 +24,6 @@ FILES=($(ls -1 "$DATA_PATH"/*.stp | sed -n "1,225p"))  # Only process first 225 
 
 for FILE in "${FILES[@]}"; do
     if [[ -f "$FILE" ]]; then  # Only process if file exists
-        python cadmesh.utils.data_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
-        # Add conversion too yaml to hdf5 here
+        python cloud_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
     fi
 done
