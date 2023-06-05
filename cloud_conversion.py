@@ -17,4 +17,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    cadmesh.utils.processing.process_step_folder(args.input, args.output, args.log, args.file_pattern, args.file_range)
+    results = cadmesh.utils.processing.process_step_folder(args.input, args.output, args.log, args.file_pattern, args.file_range)
+    print(results)
