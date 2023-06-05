@@ -24,7 +24,7 @@ FILES=($(ls -1 "$DATA_PATH"/*.stp | sed -n "1,225p"))  # Only process first 225 
 
 for FILE in "${FILES[@]}"; do
     if [[ -f "$FILE" ]]; then  # Only process if file exists
-        python data_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
+        python cadmesh.utils.data_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
         # Add conversion too yaml to hdf5 here
     fi
 done
