@@ -28,3 +28,6 @@ for FILE in "${FILES[@]}"; do
         python cloud_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
     fi
 done
+
+
+python cloud_conversion.py --input "/home/madduri/scratch/madduri/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step" --output "/home/madduri/scratch/madduri/Fusion360/segmentation/yaml/s2.0.1_extended" --log "/home/madduri/scratch/madduri/Fusion360/segmentation/yaml/logs"

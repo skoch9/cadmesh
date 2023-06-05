@@ -12,8 +12,8 @@ if __name__ == '__main__':
     parser.add_argument("--input", help="Path to the directory with STEP files.")
     parser.add_argument("--output", help="Path to the directory where results will be saved.")
     parser.add_argument("--log", help="Path to the directory where logs will be saved.")
-    parser.add_argument("--file_pattern", default="*.step", help="Pattern to match STEP files.")
-    parser.add_argument("--file_range", nargs=2, type=int, default=[0, -1], help="Range of files to process.")
+    parser.add_argument("--file_pattern", default="*.stp", help="Pattern to match STEP files.")
+    parser.add_argument("--file_range", nargs=2, type=int, default=[0, 200], help="Range of files to process.")
 
     args = parser.parse_args()
 
