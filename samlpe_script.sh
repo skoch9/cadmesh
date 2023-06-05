@@ -5,8 +5,6 @@
 #SBATCH --mem-per-cpu=16G
 #SBATCH --cpus-per-task=1
 
-module load python/3.8.10
-module load mpi4py/3.0.3
 
 # Activate Python environment
 source ~/scratch/madduri/cad/bin/activate
@@ -24,6 +22,9 @@ FILES=($(ls -1 "$DATA_PATH"/*.stp | sed -n "1,225p"))  # Only process first 225 
 
 for FILE in "${FILES[@]}"; do
     if [[ -f "$FILE" ]]; then  # Only process if file exists
+        echo "Processing $FILE"
+        echo "Output path: $OUTPUT_PATH"
+        echo "Log path: $LOG_PATH"
         python cloud_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
     fi
 done
