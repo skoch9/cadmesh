@@ -13,7 +13,6 @@ from ..core.step_processor import StepProcessor
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
     """Context manager to patch joblib to report into tqdm progress bar given as argument"""
-
     class TqdmBatchCompletionCallback(joblib.parallel.BatchCompletionCallBack):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -38,24 +37,25 @@ def with_timeout(timeout):
             pool = multiprocessing.pool.ThreadPool(1)
             async_result = pool.apply_async(decorated, args, kwargs)
             try:
-                return async_result.get(timeout)
+                return async_result.get(timeout), None
             except multiprocessing.TimeoutError:
-                return False
-
+                return None, "TimeoutError"
         return inner
-
     return decorator
 
 
 @with_timeout(120.0)
 def process_single_step(sf, output_dir, log_dir, produce_meshes=True):
-    if produce_meshes:
-        sp = StepProcessor(sf, Path(output_dir), Path(log_dir))
-    else:
-        sp = StepProcessor(sf, Path(output_dir), Path(log_dir), mesh_builder=None)
-    sp.load_step_file()
-    sp.process_parts()
-    return True
+    try:
+        if produce_meshes:
+            sp = StepProcessor(sf, Path(output_dir), Path(log_dir))
+        else:
+            sp = StepProcessor(sf, Path(output_dir), Path(log_dir), mesh_builder=None)
+        sp.load_step_file()
+        sp.process_parts()
+        return sf, None
+    except Exception as e:
+        return sf, str(e)
 
 
 def process_step_folder(input_dir, output_dir, log_dir, file_pattern="*.stp", file_range=[0, -1]):
@@ -63,14 +63,11 @@ def process_step_folder(input_dir, output_dir, log_dir, file_pattern="*.stp", fi
     output_dir = Path(output_dir)
     log_dir = Path(log_dir)
 
-
     if not data_dir.exists():
-        return False
+        return [], ['Input directory does not exist']
 
-    # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
-
 
     step_files = sorted(data_dir.glob(file_pattern))
     if file_range[1] == -1:
@@ -78,8 +75,16 @@ def process_step_folder(input_dir, output_dir, log_dir, file_pattern="*.stp", fi
     else:
         step_files = step_files[file_range[0]:file_range[1]]
 
+    success_files = []
+    failed_files = []
+
     with tqdm_joblib(tqdm(desc="Processing step files", total=len(step_files))) as progress_bar:
-        Parallel(n_jobs=4)(delayed(process_single_step)(sf, output_dir, log_dir) for sf in step_files)
+        results = Parallel(n_jobs=4)(delayed(process_single_step)(sf, output_dir, log_dir) for sf in step_files)
 
-    return True
+    for sf, error_message in results:
+        if error_message is None:
+            success_files.append(sf)
+        else:
+            failed_files.append((sf, error_message))
 
+    return success_files, failed_files
