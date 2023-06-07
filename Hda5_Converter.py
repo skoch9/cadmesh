@@ -17,8 +17,6 @@ def convert_dict_to_hdf5(data, group):
             subgroup = group.create_group(key)
             convert_dict_to_hdf5(value, subgroup)
         elif isinstance(value, list) and all(isinstance(item, dict) for item in value):
-            # if key == "parts":
-            #     convert_dict_to_hdf5(value[0], group)
             if key == "faces" and all(
                 isinstance(item, dict) and "face_index" in item and "face_orientation_wrt_shell" in item for item in
                 value):
@@ -68,9 +66,11 @@ def convert_stat_to_hdf5(data, group):
             group.create_dataset(key, data=array_data)
         elif isinstance(value, list):
             if key == "parts" and isinstance(value[0], list) and group.name == "/stat":
+                subgroup = group.create_group(key)
                 for i, inner_list in enumerate(value):
+                    subgroup_1 = subgroup.create_group('part_' + str(i + 1).zfill(3))
                     for j, item in enumerate(inner_list):
-                        convert_stat_to_hdf5(item, group.create_group(str(i).zfill(3) + '_' + str(j).zfill(3)))
+                        convert_stat_to_hdf5(item, subgroup_1.create_group(str(j).zfill(3)))
             else:
                 subgroup = group.create_group(key)
                 for i, item in enumerate(value):
