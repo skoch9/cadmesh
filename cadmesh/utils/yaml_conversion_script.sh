@@ -6,8 +6,6 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-499
 
-module load python/3.8.10
-module load mpi4py/3.0.3
 
 # Activate Python environment
 source ~/scratch/projects/def-teseo/madduri/envs/cad/bin/activate

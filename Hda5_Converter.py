@@ -117,22 +117,3 @@ def convert_data_to_hdf5(geometry_data, topology_data, stat_data, meshPath, outp
                         subgroup = mesh_subgroup.create_group(data_key)
                         for field_key, field_value in data_value.items():
                             subgroup.create_dataset(field_key, data=field_value)
-
-
-# output_file = '00000010.hdf5'
-# root_folder = os.getcwd()
-# meshPath = os.path.join(root_folder, "data", "processed_00", "00000010_mesh")
-# geometry_yaml_file_path = os.path.join(root_folder, "data", "processed_00", "00000010_geo.yaml")
-# topology_yaml_file_path = os.path.join(root_folder, "data", "processed_00", "00000010_topo.yaml")
-# stat_yaml_file_path = os.path.join(root_folder, "data", "processed_00", "00000010_stat.yaml")
-#
-# assert Path(meshPath).exists()
-# assert Path(geometry_yaml_file_path).exists()
-# assert Path(topology_yaml_file_path).exists()
-# assert Path(stat_yaml_file_path).exists()
-#
-# geometry_data = load_dict_from_yaml(geometry_yaml_file_path)
-# topology_data = load_dict_from_yaml(topology_yaml_file_path)
-# stat_data = load_dict_from_yaml(stat_yaml_file_path)
-#
-# convert_data_to_hdf5(geometry_data, topology_data, stat_data, meshPath, output_file)

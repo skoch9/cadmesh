@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --time=1:00:00
 #SBATCH --account=def-teseo
-#SBATCH --job-name=step-process-test
+#SBATCH --job-name=step-process
 #SBATCH --mem-per-cpu=16G
 #SBATCH --cpus-per-task=1
-
+#SBATCH --array=0-99
 
 # Activate Python environment
-source ~/scratch/madduri/cad/bin/activate
+source ~/scratch/projects/def-teseo/madduri/envs/cad/bin/activate
 
 # Get the username for the path
 USER_NAME=$USER
@@ -16,18 +16,18 @@ USER_NAME=$USER
 DATA_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step"
 OUTPUT_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/yaml/s2.0.1_extended"
 LOG_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/yaml/logs"
+HDF5_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/hdf5"
 
-# Get the batch of files this task should process
-FILES=($(ls -1 "$DATA_PATH"/*.stp | sed -n "1,225p"))  # Only process first 225 files
+BATCH_ID=$SLURM_ARRAY_TASK_ID  # BatchID is equal to the task id in the job array
+JOB_ID=$SLURM_JOB_ID           # JobID from SLURM
 
-for FILE in "${FILES[@]}"; do
-    if [[ -f "$FILE" ]]; then  # Only process if file exists
-        echo "Processing $FILE"
-        echo "Output path: $OUTPUT_PATH"
-        echo "Log path: $LOG_PATH"
-        python cloud_conversion.py --input "$FILE" --output "$OUTPUT_PATH" --log "$LOG_PATH"
-    fi
-done
+# Define new path for this batch
+BATCH_PATH="$DATA_PATH/batch_$BATCH_ID"
+mkdir -p "$BATCH_PATH"
+mv $(ls -1 "$DATA_PATH"/*.stp | sed -n "$((SLURM_ARRAY_TASK_ID*500+1)),$((SLURM_ARRAY_TASK_ID*500+500))p") "$BATCH_PATH"
 
+# Conversion scripts
+python cloud_conversion.py --input "$DATA_PATH" --output "$OUTPUT_PATH" --log "$LOG_PATH" --batchId "$BATCH_ID" --jobId "$JOB_ID" --hdf5_file "$HDF5_PATH"
 
-python cloud_conversion.py --input "/home/madduri/scratch/madduri/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step" --output "/home/madduri/scratch/madduri/Fusion360/segmentation/yaml" --log "/home/madduri/scratch/madduri/Fusion360/segmentation/logs
+# Delete processed files after the conversion
+rm -r "$BATCH_PATH"
