@@ -7,16 +7,15 @@
 #SBATCH --array=0-99
 
 # Activate Python environment
-source ~/scratch/projects/def-teseo/madduri/envs/cad/bin/activate
+source ~/scratch/madduri/cad/bin/activate
 
 # Get the username for the path
-USER_NAME=$USER
 
 # Define paths relative to the scratch directory
-DATA_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step"
-OUTPUT_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/yaml/s2.0.1_extended"
-LOG_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/yaml/logs"
-HDF5_PATH="/home/$USER_NAME/scratch/madduri/Fusion360/segmentation/hdf5"
+DATA_PATH="/home/madduri/scratch/madduri/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step"
+OUTPUT_PATH="/home/madduri/scratch/madduri/Fusion360/segmentation/yaml/s2.0.1_extended"
+LOG_PATH="/home/madduri/scratch/madduri/Fusion360/segmentation/yaml/logs"
+HDF5_PATH="/home/madduri/scratch/madduri/Fusion360/segmentation/hdf5"
 
 BATCH_ID=$SLURM_ARRAY_TASK_ID  # BatchID is equal to the task id in the job array
 JOB_ID=$SLURM_JOB_ID           # JobID from SLURM
@@ -29,5 +28,5 @@ mv $(ls -1 "$DATA_PATH"/*.stp | sed -n "$((SLURM_ARRAY_TASK_ID*500+1)),$((SLURM_
 # Conversion scripts
 python cloud_conversion.py --input "$DATA_PATH" --output "$OUTPUT_PATH" --log "$LOG_PATH" --batchId "$BATCH_ID" --jobId "$JOB_ID" --hdf5_file "$HDF5_PATH"
 
-# Delete processed files after the conversion
-rm -r "$BATCH_PATH"
+## Delete processed files after the conversion
+#rm -r "$BATCH_PATH"
