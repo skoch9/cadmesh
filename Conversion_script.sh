@@ -39,12 +39,15 @@ then
 fi
 
 # Copy the files
-echo "Copying the files..."
-cp $FILES_TO_COPY "$BATCH_PATH"
+echo "Moving the files..."
+mv $FILES_TO_COPY "$BATCH_PATH"
 
 
 # Conversion scripts
 echo "Running conversion scripts..."
 python cloud_conversion.py --input "$BATCH_PATH" --output "$OUTPUT_PATH" --log "$LOG_PATH" --batchId "$BATCH_ID" --jobId "$JOB_ID" --hdf5_file "$HDF5_PATH"
+
+echo "Deleting batch files..."
+rm -rf "$BATCH_PATH"
 
 echo "Done!"
