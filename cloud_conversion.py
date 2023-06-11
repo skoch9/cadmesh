@@ -4,6 +4,7 @@ import OCCUtils
 import argparse
 from Hda5_Converter import *
 from pathlib import Path
+import os
 
 
 def process_files(success_files, models_folder, output_folder, batch_id, job_id):
@@ -35,6 +36,13 @@ def process_files(success_files, models_folder, output_folder, batch_id, job_id)
             convert_data_to_hdf5(geometry_data, topology_data, stat_data, meshPath, output_file)
 
             successful_conversions.append(model_name)
+
+            # delete successful files
+            os.remove(meshPath)
+            os.remove(geometry_yaml_file_path)
+            os.remove(topology_yaml_file_path)
+            os.remove(stat_yaml_file_path)
+
         except Exception as e:
             print(f"Conversion failed for model {model_name}. Error: {e}")
             failed_conversions.append(model_name)

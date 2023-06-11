@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --time=1:00:00
+#SBATCH --time=2:00:00
 #SBATCH --account=def-teseo
 #SBATCH --job-name=step-process
-#SBATCH --mem-per-cpu=16G
-#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=32G
+#SBATCH --cpus-per-task=2
 #SBATCH --array=0-99
 
 
@@ -47,7 +47,12 @@ mv $FILES_TO_COPY "$BATCH_PATH"
 echo "Running conversion scripts..."
 python cloud_conversion.py --input "$BATCH_PATH" --output "$OUTPUT_PATH" --log "$LOG_PATH" --batchId "$BATCH_ID" --jobId "$JOB_ID" --hdf5_file "$HDF5_PATH"
 
-echo "Deleting batch files..."
-rm -rf "$BATCH_PATH"
+if [ $? -eq 0 ]
+then
+    echo "Deleting batch files..."
+    rm -rf "$BATCH_PATH"
+else
+    echo "Some files were not converted successfully. Not deleting batch files."
+fi
 
 echo "Done!"
