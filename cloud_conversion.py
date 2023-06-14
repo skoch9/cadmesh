@@ -55,6 +55,10 @@ def process_files(success_files, models_folder, output_folder, batch_id, job_id)
         for item in failed_conversions:
             f.write("%s\n" % item)
 
+    if len(failed_conversions) > 0:
+        print(f"Some files failed conversion. Check 'failed_conversions_{job_id}_{batch_id}.txt' for details.")
+        exit(1)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process STEP files in a directory.")
