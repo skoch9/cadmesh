@@ -94,7 +94,7 @@ def convert_data_to_hdf5(geometry_data, topology_data, stat_data, meshPath, outp
         convert_stat_to_hdf5(stat_data, stat_group)
 
         mesh_group = hdf.create_group('mesh')
-        for index, mesh_file in enumerate(sorted(os.listdir(meshPath))):
+        for index, mesh_file in enumerate(sorted(f for f in os.listdir(meshPath) if os.path.isfile(os.path.join(meshPath, f)))):
             if mesh_file.endswith(".obj"):
                 mesh = meshio.read(os.path.join(meshPath, mesh_file))
                 points = mesh.points
@@ -117,3 +117,4 @@ def convert_data_to_hdf5(geometry_data, topology_data, stat_data, meshPath, outp
                         subgroup = mesh_subgroup.create_group(data_key)
                         for field_key, field_value in data_value.items():
                             subgroup.create_dataset(field_key, data=field_value)
+
