@@ -59,12 +59,12 @@ then
 else
     echo "Some files were not converted successfully. Not deleting batch files."
     # Scheduling another job to process remaining files only if they exist
-    if [ "$(find "$DATA_PATH" \( -name "*.stp" -or -name "*.step" \) | wc -l)" -gt 0 ]
-    then
-        sbatch $0
-    else
-        echo "No remaining files to process."
-    fi
+#    if [ "$(find "$DATA_PATH" \( -name "*.stp" -or -name "*.step" \) | wc -l)" -gt 0 ]
+#    then
+#        sbatch $0
+#    else
+#        echo "No remaining files to process."
+#    fi
 fi
 
 echo "Done!"
