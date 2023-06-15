@@ -79,7 +79,7 @@ def process_step_folder(input_dir, output_dir, log_dir, file_pattern="*.stp", fi
     failed_files = []
 
     with tqdm_joblib(tqdm(desc="Processing step files", total=len(step_files))) as progress_bar:
-        results = Parallel(n_jobs=2)(delayed(process_single_step)(sf, output_dir, log_dir) for sf in step_files)
+        results = Parallel(n_jobs=4)(delayed(process_single_step)(sf, output_dir, log_dir) for sf in step_files)
 
     for sf, error_message in results:
         if error_message is None:

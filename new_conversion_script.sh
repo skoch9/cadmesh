@@ -4,7 +4,7 @@
 #SBATCH --job-name=step-process
 #SBATCH --mem-per-cpu=32G
 #SBATCH --cpus-per-task=4
-#SBATCH --array=0-20
+#SBATCH --array=0-57
 
 # Activate Python environment
 echo "Activating Python environment..."
@@ -13,10 +13,10 @@ source ~/scratch/madduri/cad/bin/activate
 
 # Define data path and set other paths relative to it
 echo "Defining paths..."
-DATA_PATH="/home/madduri/scratch/madduri/Fusion360/segmentation/step/s2.0.1_extended_step/breps/step"
+DATA_PATH="/home/madduri/scratch/madduri/Fusion360/reconstruction/r1.0.1/reconstruction"
 BASE_PATH=$(dirname "$DATA_PATH")
 
-OUTPUT_PATH="$BASE_PATH/yaml/s2.0.1_extended"
+OUTPUT_PATH="$BASE_PATH/yaml/r1.0.1"
 LOG_PATH="$BASE_PATH/yaml/logs"
 HDF5_PATH="$BASE_PATH/hdf5"
 
