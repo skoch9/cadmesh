@@ -16,16 +16,16 @@ echo "Defining paths..."
 DATA_PATH="/home/madduri/scratch/madduri/Fusion360/reconstruction/r1.0.1/reconstruction"
 BASE_PATH=$(dirname "$DATA_PATH")
 
-OUTPUT_PATH="$BASE_PATH/yaml/r1.0.1"
-LOG_PATH="$BASE_PATH/yaml/logs"
+BATCH_ID=$SLURM_ARRAY_TASK_ID  # BatchID is equal to the task id in the job array
+JOB_ID=$SLURM_JOB_ID           # JobID from SLURM
+
+OUTPUT_PATH="$BASE_PATH/yaml/r1.0.1/batch_${BATCH_ID}_job_${JOB_ID}"
+LOG_PATH="$BASE_PATH/yaml/logs/batch_${BATCH_ID}_job_${JOB_ID}"
 HDF5_PATH="$BASE_PATH/hdf5"
 
 mkdir -p "$OUTPUT_PATH"
 mkdir -p "$LOG_PATH"
 mkdir -p "$HDF5_PATH"
-
-BATCH_ID=$SLURM_ARRAY_TASK_ID  # BatchID is equal to the task id in the job array
-JOB_ID=$SLURM_JOB_ID           # JobID from SLURM
 
 # Define new path for this batch
 echo "Defining new path for this batch..."
@@ -53,18 +53,11 @@ python cloud_conversion.py --input "$BATCH_PATH" --output "$OUTPUT_PATH" --log "
 
 if [ $? -eq 0 ]
 then
-    echo "Deleting batch files..."
+    echo "Conversion was successful. Deleting batch files and output directory..."
     rm -rf "$BATCH_PATH"
-    find "$OUTPUT_PATH" \( -name "*.stp" -or -name "*.step" -or -name "*.yaml" -or -name "*_mesh" -type d \) -exec rm -rf {} \;
+    rm -rf "$OUTPUT_PATH"
 else
-    echo "Some files were not converted successfully. Not deleting batch files."
-    # Scheduling another job to process remaining files only if they exist
-#    if [ "$(find "$DATA_PATH" \( -name "*.stp" -or -name "*.step" \) | wc -l)" -gt 0 ]
-#    then
-#        sbatch $0
-#    else
-#        echo "No remaining files to process."
-#    fi
+    echo "Some files were not converted successfully. Not deleting batch files or output directory."
 fi
 
 echo "Done!"
