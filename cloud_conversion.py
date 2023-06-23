@@ -58,6 +58,9 @@ def process_files(success_files, models_folder, output_folder, batch_id, job_id)
     if len(failed_conversions) > 0:
         print(f"Some files failed conversion. Check 'failed_conversions_{job_id}_{batch_id}.txt' for details.")
         exit(1)
+    else:
+        print(f"All files successfully converted. Check 'successful_conversions_{job_id}_{batch_id}.txt' for details.")
+        exit(0)
 
 
 if __name__ == '__main__':
@@ -74,3 +77,4 @@ if __name__ == '__main__':
     success, failed = cadmesh.utils.processing.process_step_folder(args.input, args.output, args.log, args.file_pattern)
 
     process_files(success, args.output, args.hdf5_file, args.batchId, args.jobId)
+    # success, failed = cadmesh.utils.processing.pr
