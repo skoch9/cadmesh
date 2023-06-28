@@ -46,14 +46,17 @@ fi
 
 # Move the files
 echo "Moving the files..."
-mv $FILES_TO_COPY "$BATCH_PATH"
-
-# Check if the move was successful
-if [ $? -ne 0 ]
-then
-    echo "Files were not moved successfully for batch $BATCH_ID."
-    exit 1
-fi
+IFS=$'\n'
+for file in $FILES_TO_COPY
+do
+    mv "$file" "$BATCH_PATH"
+    if [ $? -ne 0 ]
+    then
+        echo "File $file was not moved successfully for batch $BATCH_ID."
+        exit 1
+    fi
+done
+unset IFS
 
 # Conversion scripts
 echo "Running conversion scripts..."
