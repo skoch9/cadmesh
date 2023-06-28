@@ -13,7 +13,8 @@ source ~/scratch/madduri/cad/bin/activate
 
 # Define data path and set other paths relative to it
 echo "Defining paths..."
-DATA_PATH="/home/madduri/scratch/madduri/Fusion360/reconstruction/r1.0.1/reconstruction"
+DATA_PATH="/home/madduri/scratch/Fusion360/s2.0.1_extended_step/breps/step"
+
 BASE_PATH=$(dirname "$DATA_PATH")
 
 BATCH_ID=$SLURM_ARRAY_TASK_ID  # BatchID is equal to the task id in the job array
@@ -46,6 +47,13 @@ fi
 # Move the files
 echo "Moving the files..."
 mv $FILES_TO_COPY "$BATCH_PATH"
+
+# Check if the move was successful
+if [ $? -ne 0 ]
+then
+    echo "Files were not moved successfully for batch $BATCH_ID."
+    exit 1
+fi
 
 # Conversion scripts
 echo "Running conversion scripts..."

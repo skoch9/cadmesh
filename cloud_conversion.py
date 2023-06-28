@@ -37,11 +37,10 @@ def process_files(success_files, models_folder, output_folder, batch_id, job_id)
 
             successful_conversions.append(model_name)
 
-            # delete successful files
-            os.remove(meshPath)
-            os.remove(geometry_yaml_file_path)
-            os.remove(topology_yaml_file_path)
-            os.remove(stat_yaml_file_path)
+            # delete files on success
+            for file in [meshPath, geometry_yaml_file_path, topology_yaml_file_path, stat_yaml_file_path]:
+                if file.exists():
+                    file.unlink()
 
         except Exception as e:
             print(f"Conversion failed for model {model_name}. Error: {e}")
