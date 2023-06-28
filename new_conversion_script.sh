@@ -33,30 +33,27 @@ echo "Defining new path for this batch..."
 BATCH_PATH="$DATA_PATH/batch_$BATCH_ID"
 mkdir -p "$BATCH_PATH"
 
-# Get the list of files to be copied
-echo "Getting the list of files to be copied..."
-FILES_TO_COPY=$(find "$DATA_PATH" \( -name "*.stp" -or -name "*.step" \) | sed -n "$((SLURM_ARRAY_TASK_ID*500+1)),$((SLURM_ARRAY_TASK_ID*500+500))p")
+# Get the list of files to be moved
+echo "Getting the list of files to be moved..."
+FILES_TO_MOVE=$(ls -1 "$DATA_PATH"/*.stp | sed -n "$((SLURM_ARRAY_TASK_ID*500+1)),$((SLURM_ARRAY_TASK_ID*500+500))p")
 
 # Check if files exist
-if [ -z "$FILES_TO_COPY" ]
+if [ -z "$FILES_TO_MOVE" ]
 then
-    echo "No files to copy for batch $BATCH_ID."
+    echo "No files to move for batch $BATCH_ID."
     exit 1
 fi
 
 # Move the files
 echo "Moving the files..."
-IFS=$'\n'
-for file in $FILES_TO_COPY
-do
-    mv "$file" "$BATCH_PATH"
-    if [ $? -ne 0 ]
-    then
-        echo "File $file was not moved successfully for batch $BATCH_ID."
-        exit 1
-    fi
-done
-unset IFS
+mv $FILES_TO_MOVE "$BATCH_PATH"
+
+# Check if the move was successful
+if [ $? -ne 0 ]
+then
+    echo "Files were not moved successfully for batch $BATCH_ID."
+    exit 1
+fi
 
 # Conversion scripts
 echo "Running conversion scripts..."
