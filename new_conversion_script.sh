@@ -4,7 +4,7 @@
 #SBATCH --job-name=step-process
 #SBATCH --mem-per-cpu=32G
 #SBATCH --cpus-per-task=4
-#SBATCH --array=0-10
+#SBATCH --array=0-100
 
 # Activate Python environment
 echo "Activating Python environment..."
