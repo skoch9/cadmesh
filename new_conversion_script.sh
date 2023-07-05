@@ -4,7 +4,7 @@
 #SBATCH --job-name=step-process
 #SBATCH --mem-per-cpu=32G
 #SBATCH --cpus-per-task=4
-#SBATCH --array=0-100
+#SBATCH --array=0-1
 
 # Activate Python environment
 echo "Activating Python environment..."
@@ -19,7 +19,7 @@ fi
 
 # Define data path and set other paths relative to it
 echo "Defining paths..."
-DATA_PATH="/home/madduri/scratch/Fusion360/s2.0.1_extended_step/breps/step"
+DATA_PATH="/home/madduri/scratch/Fusion360/s2.0.1_extended_step/breps/step_temp"
 
 BASE_PATH=$(dirname "$DATA_PATH")
 
