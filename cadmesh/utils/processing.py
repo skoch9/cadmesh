@@ -8,6 +8,7 @@ import functools
 import os
 from joblib import Parallel, delayed
 
+
 from ..core.step_processor import StepProcessor
 
 @contextlib.contextmanager
@@ -86,5 +87,37 @@ def process_step_folder(input_dir, output_dir, log_dir, file_pattern="*.stp", fi
             success_files.append(sf)
         else:
             failed_files.append((sf, error_message))
+
+    return success_files, failed_files
+
+
+def process_step_files(input_files, output_dir, log_dir):
+    output_dir = Path(output_dir)
+    log_dir = Path(log_dir)
+
+    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Ensure input files are Path objects
+    input_files = [Path(file) for file in input_files]
+
+    success_files = []
+    failed_files = []
+
+    with tqdm_joblib(tqdm(desc="Processing step files", total=len(input_files))) as progress_bar:
+        results = Parallel(n_jobs=4)(delayed(process_single_step)(sf, output_dir, log_dir) for sf in input_files)
+
+    for sf, error_message in results:
+        if error_message is None:
+            success_files.append(sf)
+        else:
+            failed_files.append((sf, error_message))
+
+    # Delete the successfully processed files
+    for sf in success_files:
+        try:
+            os.remove(sf)
+        except OSError as e:
+            print(f"Error: {sf} : {e.strerror}")
 
     return success_files, failed_files

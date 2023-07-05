@@ -68,12 +68,11 @@ if __name__ == '__main__':
     parser.add_argument("--output", help="Path to the directory where results will be saved.")
     parser.add_argument("--log", help="Path to the directory where logs will be saved.")
     parser.add_argument("--hdf5_file", help="Path to the HDF5 file where results will be saved.")
-    parser.add_argument("--file_pattern", default="*.step", help="Pattern to match STEP files.")
     parser.add_argument("--jobId", help="Job ID for this execution")
     parser.add_argument("--batchId", help="Batch ID for this execution")
     args = parser.parse_args()
 
-    success, failed = cadmesh.utils.processing.process_step_folder(args.input, args.output, args.log, args.file_pattern)
+    success, failed = cadmesh.utils.processing.process_step_files(args.input, args.output, args.log)
 
     process_files(success, args.output, args.hdf5_file, args.batchId, args.jobId)
     # success, failed = cadmesh.utils.processing.pr
