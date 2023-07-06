@@ -4,7 +4,7 @@
 #SBATCH --job-name=step-process
 #SBATCH --mem-per-cpu=32G
 #SBATCH --cpus-per-task=4
-#SBATCH --array=0-1
+#SBATCH --array=0-100
 
 # Activate Python environment
 echo "Activating Python environment..."
@@ -68,13 +68,5 @@ echo "Running conversion scripts..."
 # Assuming your python script can take a list of files
 python cloud_conversion.py --input "$FILES_TO_PROCESS" --output "$OUTPUT_PATH" --log "$LOG_PATH" --batchId "$BATCH_ID" --jobId "$JOB_ID" --hdf5_file "$HDF5_PATH"
 
-
-if [ $? -eq 0 ]
-then
-    echo "Conversion was successful. Deleting output directory..."
-    rm -rf "$OUTPUT_PATH"
-else
-    echo "Some files were not converted successfully. Not deleting output directory."
-fi
 
 echo "Done!"

@@ -107,17 +107,13 @@ def process_step_files(input_files, output_dir, log_dir):
     with tqdm_joblib(tqdm(desc="Processing step files", total=len(input_files))) as progress_bar:
         results = Parallel(n_jobs=4)(delayed(process_single_step)(sf, output_dir, log_dir) for sf in input_files)
 
+    model_names = []  # this will hold just the model names
+
     for sf, error_message in results:
         if error_message is None:
             success_files.append(sf)
+            model_names.append(sf[0].name)  # append only the name of the file
         else:
             failed_files.append((sf, error_message))
-
-    # Delete the successfully processed files
-    for sf in success_files:
-        try:
-            os.remove(sf)
-        except OSError as e:
-            print(f"Error: {sf} : {e.strerror}")
 
     return success_files, failed_files

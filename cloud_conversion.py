@@ -5,6 +5,8 @@ import argparse
 from Hda5_Converter import *
 from pathlib import Path
 import os
+import glob
+import shutil
 
 
 def process_files(success_files, models_folder, output_folder, batch_id, job_id):
@@ -38,9 +40,15 @@ def process_files(success_files, models_folder, output_folder, batch_id, job_id)
             successful_conversions.append(model_name)
 
             # delete files on success
-            for file in [meshPath, geometry_yaml_file_path, topology_yaml_file_path, stat_yaml_file_path]:
-                if file.exists():
-                    file.unlink()
+            for file in [item[0], meshPath, geometry_yaml_file_path, topology_yaml_file_path, stat_yaml_file_path]:
+                try:
+                    if file.exists():
+                        if file.is_dir():
+                            shutil.rmtree(str(file))  # for directories
+                        else:
+                            os.remove(str(file))  # for files
+                except OSError as e:
+                    print(f"Error: {file} : {e.strerror}")
 
         except Exception as e:
             print(f"Conversion failed for model {model_name}. Error: {e}")
@@ -59,8 +67,51 @@ def process_files(success_files, models_folder, output_folder, batch_id, job_id)
         exit(1)
     else:
         print(f"All files successfully converted. Check 'successful_conversions_{job_id}_{batch_id}.txt' for details.")
+        try:
+            if input_folder.exists():
+                shutil.rmtree(str(input_folder))  # Delete the models folder
+        except OSError as e:
+            print(f"Error: {input_folder} : {e.strerror}")
         exit(0)
 
+
+def process_local_test():
+    # Define data path and set other paths relative to it
+    DATA_PATH="/Users/chandu/Workspace/GM/cadmesh/test_conversion/temp_step"
+    BASE_PATH=os.path.dirname(DATA_PATH)
+
+    # Set BatchID and JobID manually for local testing
+    BATCH_ID = "0"  # replace with your batch id for testing
+    JOB_ID = "1"   # replace with your job id for testing
+
+    OUTPUT_PATH=os.path.join(BASE_PATH, f"yaml/batch_{BATCH_ID}_job_{JOB_ID}")
+    LOG_PATH=os.path.join(BASE_PATH, f"yaml/logs/batch_{BATCH_ID}_job_{JOB_ID}")
+    HDF5_PATH=os.path.join(BASE_PATH, "hdf5")
+
+    # Create directories
+    for dir in [OUTPUT_PATH, LOG_PATH, HDF5_PATH]:
+        os.makedirs(dir, exist_ok=True)
+
+    # Define new path for this batch
+    BATCH_PATH=os.path.join(DATA_PATH, f"batch_{BATCH_ID}")
+    os.makedirs(BATCH_PATH, exist_ok=True)
+
+    # Get the list of files to be processed
+    FILES_TO_PROCESS = glob.glob(os.path.join(DATA_PATH, "*.stp"))[:1]  # adjust as needed
+
+    # Check if files exist
+    if not FILES_TO_PROCESS:
+        print(f"No files to process for batch {BATCH_ID}.")
+        return
+
+    # Run the conversion scripts
+    success, failed = cadmesh.utils.processing.process_step_files(FILES_TO_PROCESS, OUTPUT_PATH, LOG_PATH)
+    process_files(success, OUTPUT_PATH, HDF5_PATH, BATCH_ID, JOB_ID)
+
+    print("Done!")
+
+# if __name__ == '__main__':
+#     process_local_test()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process STEP files in a directory.")
@@ -75,4 +126,4 @@ if __name__ == '__main__':
     success, failed = cadmesh.utils.processing.process_step_files(args.input, args.output, args.log)
 
     process_files(success, args.output, args.hdf5_file, args.batchId, args.jobId)
-    # success, failed = cadmesh.utils.processing.pr
+
