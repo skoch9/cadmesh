@@ -7,6 +7,7 @@ from pathlib import Path
 import os
 import glob
 import shutil
+import tempfile
 
 
 def process_files(success_files, models_folder, output_folder, batch_id, job_id):
@@ -104,9 +105,17 @@ def process_local_test():
         print(f"No files to process for batch {BATCH_ID}.")
         return
 
+    # Write the list of files to a temporary text file
+    with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp_file:
+        for file in FILES_TO_PROCESS:
+            temp_file.write(f"{file}\n")
+
     # Run the conversion scripts
-    success, failed = cadmesh.utils.processing.process_step_files(FILES_TO_PROCESS, OUTPUT_PATH, LOG_PATH)
+    success, failed = cadmesh.utils.processing.process_step_files(temp_file.name, OUTPUT_PATH, LOG_PATH)
     process_files(success, OUTPUT_PATH, HDF5_PATH, BATCH_ID, JOB_ID)
+
+    # Clean up temporary file
+    os.remove(temp_file.name)
 
     print("Done!")
 
