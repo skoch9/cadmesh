@@ -91,15 +91,16 @@ def process_step_folder(input_dir, output_dir, log_dir, file_pattern="*.stp", fi
     return success_files, failed_files
 
 
-def process_step_files(input_files, output_dir, log_dir):
+def process_step_files(input_file_list, output_dir, log_dir):
     output_dir = Path(output_dir)
     log_dir = Path(log_dir)
 
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
 
-    # Ensure input files are Path objects
-    input_files = [Path(file) for file in input_files]
+    # Read input files from a list in a text file
+    with open(input_file_list, 'r') as f:
+        input_files = [Path(line.strip()) for line in f]
 
     success_files = []
     failed_files = []

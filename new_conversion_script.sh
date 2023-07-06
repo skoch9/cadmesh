@@ -41,32 +41,26 @@ do
     fi
 done
 
-# Define new path for this batch
-echo "Defining new path for this batch..."
-BATCH_PATH="$DATA_PATH/batch_$BATCH_ID"
-mkdir -p "$BATCH_PATH"
-
-if [ ! -d "$BATCH_PATH" ]
-then
-    echo "Batch directory could not be created."
-    exit 1
-fi
 
 # Get the list of files to be processed
 echo "Getting the list of files to be processed..."
-FILES_TO_PROCESS=$(ls -1 "$DATA_PATH"/*.stp | sed -n "$((SLURM_ARRAY_TASK_ID*500+1)),$((SLURM_ARRAY_TASK_ID*500+500))p")
+TMP_FILE_LIST="tmp_file_list_$SLURM_ARRAY_TASK_ID.txt"
+python get_files.py $SLURM_ARRAY_TASK_ID "$DATA_PATH" "*.stp" > $TMP_FILE_LIST
 
 # Check if files exist
-if [ -z "$FILES_TO_PROCESS" ]
+if [ ! -s $TMP_FILE_LIST ]
 then
     echo "No files to process for batch $BATCH_ID."
+    rm $TMP_FILE_LIST
     exit 1
 fi
 
 # Conversion scripts
 echo "Running conversion scripts..."
-# Assuming your python script can take a list of files
-python cloud_conversion.py --input "$FILES_TO_PROCESS" --output "$OUTPUT_PATH" --log "$LOG_PATH" --batchId "$BATCH_ID" --jobId "$JOB_ID" --hdf5_file "$HDF5_PATH"
+# Your python script now takes a file containing list of files as input
+python cloud_conversion.py --input $TMP_FILE_LIST --output "$OUTPUT_PATH" --log "$LOG_PATH" --batchId "$BATCH_ID" --jobId "$JOB_ID" --hdf5_file "$HDF5_PATH"
 
+# Clean up the temporary file
+rm $TMP_FILE_LIST
 
 echo "Done!"
