@@ -8,6 +8,8 @@ import os
 import glob
 import shutil
 import tempfile
+# import get_files
+# import multiprocessing
 
 
 def process_files(success_files, models_folder, output_folder, batch_id, job_id):
@@ -75,7 +77,6 @@ def process_files(success_files, models_folder, output_folder, batch_id, job_id)
             print(f"Error: {input_folder} : {e.strerror}")
         exit(0)
 
-
 def process_local_test():
     # Define data path and set other paths relative to it
     DATA_PATH="/Users/chandu/Workspace/GM/cadmesh/test_conversion/temp_step"
@@ -119,9 +120,82 @@ def process_local_test():
 
     print("Done!")
 
+# def process_local_test():
+#     # Define data path and set other paths relative to it
+#     DATA_PATH="/Users/chandu/Workspace/GM/cadmesh/test_conversion/step_2"
+#     BASE_PATH=os.path.dirname(DATA_PATH)
+#
+#     # Set BatchID and JobID manually for local testing
+#     BATCH_ID = "0"  # replace with your batch id for testing
+#     JOB_ID = "1"   # replace with your job id for testing
+#
+#     OUTPUT_PATH=os.path.join(BASE_PATH, f"yaml/batch_{BATCH_ID}_job_{JOB_ID}")
+#     LOG_PATH=os.path.join(BASE_PATH, f"yaml/logs/batch_{BATCH_ID}_job_{JOB_ID}")
+#     HDF5_PATH=os.path.join(BASE_PATH, "hdf5")
+#     PROCESSED_FILES_PATH=os.path.join(BASE_PATH, "processed_files.txt")
+#
+#     # Create directories
+#     for dir in [OUTPUT_PATH, LOG_PATH, HDF5_PATH]:
+#         os.makedirs(dir, exist_ok=True)
+#
+#     # Get the list of files to be processed
+#     # Temporary file for storing the list of files to process
+#     temp_file_list = f"tmp_file_list_{BATCH_ID}.txt"
+#
+#     # Call the function to get the list of files
+#     get_files(BATCH_ID, DATA_PATH, "*.stp", PROCESSED_FILES_PATH, temp_file_list)
+#
+#     # Read the list of files to process
+#     with open(temp_file_list, 'r') as f:
+#         FILES_TO_PROCESS = [line.strip() for line in f]
+#
+#     # Check if files exist
+#     if not FILES_TO_PROCESS:
+#         print(f"No files to process for batch {BATCH_ID}.")
+#         return
+#
+#     # Run the conversion scripts
+#     success, failed = cadmesh.utils.processing.process_step_files(temp_file_list, OUTPUT_PATH, LOG_PATH)
+#     process_files(success, OUTPUT_PATH, HDF5_PATH, BATCH_ID, JOB_ID)
+#
+#     # Clean up temporary file
+#     os.remove(temp_file_list)
+#
+#     print("Done!")
+#
+#
+# def process_files_simultaneously(file_id):
+#     DATA_PATH = "/Users/chandu/Workspace/GM/cadmesh/test_conversion/step_2"
+#     BASE_PATH = os.path.dirname(DATA_PATH)
+#     PROCESSED_FILES_PATH = os.path.join(BASE_PATH, "processed_files.txt")
+#     temp_file_list = f"tmp_file_list_{file_id}.txt"
+#
+#     # call the function to get the list of files
+#     get_files(file_id, DATA_PATH, "*.stp", PROCESSED_FILES_PATH, temp_file_list)
+#
+#     with open(temp_file_list, 'r') as f:
+#         FILES_TO_PROCESS = [line.strip() for line in f]
+#
+#     print(f"Process {file_id} got {len(FILES_TO_PROCESS)} files")
+#     os.remove(temp_file_list)
+#
+# def test_simultaneously_processing():
+#     # number of parallel processes
+#     num_processes = 10
+#     pool = multiprocessing.Pool(processes=num_processes)
+#
+#     # process id's (0 to 9 in this case)
+#     process_ids = range(num_processes)
+#
+#     # start all processes
+#     pool.map(process_files_simultaneously, process_ids)
+#
+#     pool.close()
+#     pool.join()
+
 # if __name__ == '__main__':
 #     process_local_test()
-
+#
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process STEP files in a directory.")
     parser.add_argument("--input", help="Path to the text file with the list of STEP files.")
@@ -135,4 +209,4 @@ if __name__ == '__main__':
     success, failed = cadmesh.utils.processing.process_step_files(args.input, args.output, args.log)
 
     process_files(success, args.output, args.hdf5_file, args.batchId, args.jobId)
-
+#

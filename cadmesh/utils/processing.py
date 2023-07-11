@@ -45,7 +45,7 @@ def with_timeout(timeout):
     return decorator
 
 
-@with_timeout(120.0)
+@with_timeout(60.0)
 def process_single_step(sf, output_dir, log_dir, produce_meshes=True):
     try:
         if produce_meshes:
