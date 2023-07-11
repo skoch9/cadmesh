@@ -29,6 +29,7 @@ JOB_ID=$SLURM_JOB_ID           # JobID from SLURM
 OUTPUT_PATH="$BASE_PATH/yaml/batch_${BATCH_ID}_job_${JOB_ID}"
 LOG_PATH="$BASE_PATH/yaml/logs/batch_${BATCH_ID}_job_${JOB_ID}"
 HDF5_PATH="$BASE_PATH/hdf5"
+PROCESSED_FILES_PATH="$BASE_PATH/processed_files.txt"
 
 # Create directories
 for dir in "$OUTPUT_PATH" "$LOG_PATH" "$HDF5_PATH"
@@ -45,7 +46,7 @@ done
 # Get the list of files to be processed
 echo "Getting the list of files to be processed..."
 TMP_FILE_LIST="tmp_file_list_$SLURM_ARRAY_TASK_ID.txt"
-python get_files.py $SLURM_ARRAY_TASK_ID "$DATA_PATH" "*.stp" > $TMP_FILE_LIST
+python get_files.py $SLURM_ARRAY_TASK_ID "$DATA_PATH" "*.stp" "$PROCESSED_FILES_PATH" > $TMP_FILE_LIST
 
 # Check if files exist
 if [ ! -s $TMP_FILE_LIST ]
